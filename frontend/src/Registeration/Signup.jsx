@@ -1,10 +1,21 @@
 import React from "react";
+import { useState } from "react";
 import { FaChartLine, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link } from 'react-router-dom';
 
 const SignUp = () => {
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] =useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+
+  useEffect(() =>{
+    
+  })
 
   return (
     <div className="h-screen w-full bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex flex-col justify-center items-center p-4 overflow-hidden">

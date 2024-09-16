@@ -1,11 +1,25 @@
 const express = require('express');
 const app = express();
-const port = 5000;
+const cors = require('cors');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
-app.get('/', (req, res) => {
-  res.send('Hello, world!');
-});
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+
+//mongodb setup
+const PORT = process.env.PORT || 5000;
+const uri = process.env.MONGODB_URI
+
+mongoose.connect(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('Could not connect to MongoDB:', err));
+
+
+
+app.use("/api/users", require('./Routes/userRoutes'));
