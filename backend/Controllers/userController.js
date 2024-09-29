@@ -2,26 +2,31 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../Models/users");
 
+// Register function
 exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
+    // Check if user exists by username or email
     let existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
       return res.status(400).json({
-        msg: "User with that email or user already exists",
+        msg: "User with that email or username already exists",
       });
     }
 
+    // Create a new user object
     const newUser = new User({
       username,
       email,
       password,
     });
 
+    // Hash the password before saving
     const salt = await bcrypt.genSalt(10);
     newUser.password = await bcrypt.hash(password, salt);
 
+    // Save the user to the database
     await newUser.save();
     res.status(201).json({ msg: "User Registered Successfully" });
   } catch (err) {
@@ -30,14 +35,15 @@ exports.register = async (req, res) => {
   }
 };
 
+// Login function
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email or username
+    // Find user by email or username (not password)
     let existingUser = await User.findOne({
-      $or: [{ email }, { password }],
-    }); // Assuming either email or username is provided
+      $or: [{ email }, { username: email }],
+    }); // This assumes you're allowing login with either username or email
     if (!existingUser) {
       return res.status(400).json({ msg: "Invalid Credentials" });
     }
@@ -57,7 +63,10 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }, // Token expiration
       (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error("JWT Sign Error:", err);
+          return res.status(500).json({ msg: "Error generating token" });
+        }
 
         // Set the token in an HTTP-only cookie
         res.cookie("token", token, {
@@ -67,7 +76,7 @@ exports.login = async (req, res) => {
           maxAge: 3600000, // Cookie expiration (1 hour)
         });
 
-        // Optionally, send the user ID back if needed
+        // Send back a success message and optionally the user ID
         res
           .status(200)
           .json({ msg: "Login successful", userId: existingUser._id });

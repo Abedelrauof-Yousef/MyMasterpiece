@@ -1,7 +1,47 @@
-import React from 'react';
-import { Mail, Phone, MapPin, Send, ArrowRightIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import axios from 'axios'; // Import axios for making API requests
+import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import AboutPicture from '../assets/AboutPicture.png';
+
 const Contact = () => {
+  // State variables for form inputs
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  
+  // State for success/error feedback
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent form from refreshing the page
+    setError(""); // Clear any previous errors
+    setSuccess(""); // Clear any previous success messages
+
+    try {
+      // Send POST request to backend with the form data
+      const response = await axios.post("http://localhost:5001/api/contact", {
+        name,
+        email,
+        subject,
+        message
+      });
+      console.log(response.data);
+      setSuccess("Message sent successfully!"); // Display success message
+      // Clear form fields after successful submission
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+    } catch (error) {
+      console.error("There was an error sending the data:", error);
+      setError("Failed to send message, please try again later.");
+    }
+  };
+
   return (
     <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white min-h-screen">
       {/* Hero Section */}
@@ -26,7 +66,8 @@ const Contact = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="bg-gray-900 rounded-lg p-8 shadow-lg">
               <h2 className="text-3xl font-bold mb-6 text-blue-400">Send us a Message</h2>
-              <form>
+              {/* Form with onSubmit event */}
+              <form onSubmit={handleSubmit}>
                 <div className="mb-6">
                   <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
                   <input
@@ -34,6 +75,8 @@ const Contact = () => {
                     id="name"
                     name="name"
                     required
+                    value={name} // Bind value to state
+                    onChange={(e) => setName(e.target.value)} // Update state on change
                     className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
                   />
                 </div>
@@ -44,6 +87,8 @@ const Contact = () => {
                     id="email"
                     name="email"
                     required
+                    value={email} // Bind value to state
+                    onChange={(e) => setEmail(e.target.value)} // Update state on change
                     className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
                   />
                 </div>
@@ -54,6 +99,8 @@ const Contact = () => {
                     id="subject"
                     name="subject"
                     required
+                    value={subject} // Bind value to state
+                    onChange={(e) => setSubject(e.target.value)} // Update state on change
                     className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
                   />
                 </div>
@@ -64,10 +111,20 @@ const Contact = () => {
                     name="message"
                     required
                     rows="4"
+                    value={message} // Bind value to state
+                    onChange={(e) => setMessage(e.target.value)} // Update state on change
                     className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
                   ></textarea>
                 </div>
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center">
+
+                {/* Display success or error messages */}
+                {success && <p className="text-green-400 mb-4">{success}</p>}
+                {error && <p className="text-red-400 mb-4">{error}</p>}
+
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-md transition duration-300 ease-in-out hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center"
+                >
                   <Send size={18} className="mr-2" />
                   Send Message
                 </button>

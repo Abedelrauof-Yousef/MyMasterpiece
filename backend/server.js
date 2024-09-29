@@ -21,6 +21,7 @@ mongoose
 
   
 app.use("/api/users", require("./Routes/userRoutes"));
+app.use("/api", require("./Routes/contactRoutes"));
 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
