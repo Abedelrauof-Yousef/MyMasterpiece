@@ -1,12 +1,31 @@
-import React from "react";
-import { FaFacebookF } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaFacebookF, FaChartLine, FaEye, FaEyeSlash } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
-import { FaChartLine, FaEye, FaEyeSlash } from "react-icons/fa";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';  // Import axios
 
 const SignIn = () => {
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");  // Clear any previous error messages
+
+    try {
+      const response = await axios.post("http://localhost:5001/api/users/login", { email, password });
+      console.log(response.data); // For debugging purposes
+      navigate("/");  // Redirect to the homepage or another protected page after successful login
+    } catch (err) {
+      console.error("Login Error", err);
+      setError("Invalid email or password.");  // Display error message
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
@@ -36,10 +55,18 @@ const SignIn = () => {
           {/* Right side */}
           <div className="w-full md:w-1/2 p-8 bg-white bg-opacity-20 backdrop-filter backdrop-blur-md">
             <h2 className="text-3xl font-bold text-white mb-6">Welcome Back</h2>
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-white mb-1">Email Address</label>
-                <input type="email" id="email" name="email" className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-white placeholder-gray-400" />
+                <input 
+                  type="email"
+                  id="email"
+                  name="email"
+                  className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-white placeholder-gray-400"
+                  value={email}  // Bind to state
+                  onChange={(e) => setEmail(e.target.value)}  // Update state
+                  required
+                />
               </div>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-white mb-1">Password</label>
@@ -49,6 +76,9 @@ const SignIn = () => {
                     id="password"
                     name="password"
                     className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-white placeholder-gray-400"
+                    value={password}  // Bind to state
+                    onChange={(e) => setPassword(e.target.value)}  // Update state
+                    required
                   />
                   <button
                     type="button"
@@ -63,6 +93,7 @@ const SignIn = () => {
                   </button>
                 </div>
               </div>
+              {error && <p className="text-red-500 text-sm">{error}</p>}  {/* Show error message */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
@@ -94,4 +125,4 @@ const SignIn = () => {
   );
 };
 
-export default SignIn;  
+export default SignIn;
