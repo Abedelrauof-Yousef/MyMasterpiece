@@ -1,16 +1,18 @@
-import React from "react";
-import HeroSectionImage from '../assets/HeroSectionImage.jpg';
-
-function HeroSection(){
-    return (
-        <div className="hero-section" style={{ backgroundImage: `url(${HeroSectionImage})`, marginBottom: '4rem' }}>
-          <div className="overlay"></div>
-          <div className="content">
-            <h2>Take Control of Your Finances, Track your expenses, set goals, and get personalized financial advice</h2>
-            <button>Get Started</button>
-          </div>
-        </div>
-      );
+import React from 'react';
+import heroSectionImage from '../assets/heroSectionImage.jpg';
+function HeroSection() {
+  return (
+    <div className="relative h-screen bg-cover bg-center" style={{ backgroundImage:`url(${heroSectionImage})`}}>
+      <div className="absolute inset-0 bg-black opacity-50"></div>
+      <div className="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-4">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Take Control of Your Finances</h1>
+        <p className="text-xl md:text-2xl mb-8">Track your expenses, set goals, and get personalized financial advice</p>
+        <button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full transition duration-300 transform hover:scale-105">
+          Get Started
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default HeroSection;

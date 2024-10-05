@@ -28,7 +28,7 @@ const Contact = () => {
         email,
         subject,
         message
-      });
+      }, {withCredentials:true});
       console.log(response.data);
       setSuccess("Message sent successfully!"); // Display success message
       // Clear form fields after successful submission

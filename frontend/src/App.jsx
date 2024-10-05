@@ -9,6 +9,9 @@ import SignIn from './Registeration/Sign';
 import ProfilePage from './Profile/Profile';
 import FinanceTracker from './FinanceTracker/FinanceTracker';
 import SignUp from './Registeration/Signup';
+import Dashboard from './dashboard/Dashboard';
+import AddExpense from './dashboard/addExpense';
+import AddGoal from './dashboard/addGoal';
 
 function App() {
   const [count, setCount] = useState(0);
@@ -26,6 +29,9 @@ function App() {
           <Route path='profile' element={<ProfilePage />} />
           <Route path='finance' element ={<FinanceTracker/>} />
           <Route path='signup' element={<SignUp />} />
+          <Route path='dashboard' element={<Dashboard />} />
+          <Route path='addexpense' element={<AddExpense />} />
+          <Route path='addGoal' element={<AddGoal />} />
         </Routes>
       </BrowserRouter>
     </div>
