@@ -4,7 +4,6 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const cookieParser = require("cookie-parser");
-const dashboardRoutes = require('./routes/dashboardRoutes');
 
 
 app.use(
@@ -33,7 +32,10 @@ mongoose
   
 app.use("/api/users", require("./Routes/userRoutes"));
 app.use("/api", require("./Routes/contactRoutes"));
-app.use('/api/dashboard', dashboardRoutes);
+app.use("/api/posts", require("./Routes/postRoutes"));
+
+app.use("/api/transactions", require("./Routes/transactionRoutes"));
+app.use("/api/goals", require("./Routes/goalRoutes"));
 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
