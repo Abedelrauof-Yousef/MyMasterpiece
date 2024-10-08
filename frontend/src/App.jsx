@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/authContext";
 import HomePage from "./Home";
 import AboutUs from "./AboutUs/AboutUs";
 import Navbar from "./components/Navbar";
@@ -13,9 +14,11 @@ import CreatePost from "./Articles/CreatePost";
 import EditPost from "./Articles/EditPost";
 import AdminDashboard from "./admin/homePage";
 
+
 function App() {
   return (
     <div>
+    <AuthProvider>
       <BrowserRouter>
         <Navbar />
         <Routes>
@@ -30,10 +33,10 @@ function App() {
           <Route path="articles" element={<Articles />} />
           <Route path="create-post" element={<CreatePost />} />
           <Route path="edit-post/:id" element={<EditPost />} />
-
           <Route path="/dashboard" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
+    </AuthProvider>
     </div>
   );
 }

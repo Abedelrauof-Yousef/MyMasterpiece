@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { AuthContext } from "../context/authContext"; // Import the AuthContext
 import { FaFacebookF, FaChartLine, FaEye, FaEyeSlash } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -6,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios"; // Import axios
 
 const SignIn = () => {
+  const { setIsAuthenticated } = useContext(AuthContext); // Use the context to set authenticated state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,6 +15,7 @@ const SignIn = () => {
 
   const navigate = useNavigate();
 
+  // Handle the form submit for signing in
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); // Clear any previous error messages
@@ -24,7 +27,8 @@ const SignIn = () => {
         { withCredentials: true }
       );
       console.log(response.data); // For debugging purposes
-      navigate("/");
+      setIsAuthenticated(true); // Set authenticated state to true on successful login
+      navigate("/"); // Redirect to homepage after login
     } catch (err) {
       console.error("Login Error", err);
       setError("Invalid email or password."); // Display error message

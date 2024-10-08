@@ -120,48 +120,59 @@ const Dashboard = () => {
     }
   };
 
-  // Add goal with validation
-  const addGoal = async () => {
+// Add goal with validation
+const addGoal = async () => {
     const { name, targetAmount, salary, monthlyExpenses, monthlySavings } = newGoal;
 
+    // Parse values to integers (to handle cases where inputs are treated as strings)
+    const parsedSalary = parseInt(salary, 10);
+    const parsedMonthlyExpenses = parseInt(monthlyExpenses, 10);
+    const parsedMonthlySavings = parseInt(monthlySavings, 10);
+
     // Condition to check for invalid input
-    if (salary <= monthlyExpenses) {
-      setError('Salary must be greater than monthly expenses.');
-      return;
+    if (parsedSalary <= parsedMonthlyExpenses) {
+        setError('Salary must be greater than monthly expenses.');
+        return;
     }
 
-    if (monthlySavings > salary - monthlyExpenses) {
-      setError('Monthly savings cannot be greater than what is left from salary after expenses.');
-      return;
+    if (parsedMonthlySavings > parsedSalary - parsedMonthlyExpenses) {
+        setError('Monthly savings cannot be greater than what is left from salary after expenses.');
+        return;
     }
 
     // Clear previous errors
     setError(null);
 
     if (name && targetAmount && salary && monthlyExpenses && monthlySavings) {
-      try {
-        const res = await fetch('http://localhost:5001/api/goals', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(newGoal),
-        });
-        const addedGoal = await res.json();
-        setGoals([...goals, addedGoal]);
-        setNewGoal({
-          name: '',
-          targetAmount: '',
-          salary: '',
-          monthlyExpenses: '',
-          monthlySavings: '',
-        });
-      } catch (err) {
-        console.error('Error adding goal:', err);
-      }
+        try {
+            const res = await fetch('http://localhost:5001/api/goals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    ...newGoal,
+                    salary: parsedSalary,
+                    monthlyExpenses: parsedMonthlyExpenses,
+                    monthlySavings: parsedMonthlySavings
+                }),
+            });
+            const addedGoal = await res.json();
+            setGoals([...goals, addedGoal]);
+            setNewGoal({
+                name: '',
+                targetAmount: '',
+                salary: '',
+                monthlyExpenses: '',
+                monthlySavings: '',
+            });
+        } catch (err) {
+            console.error('Error adding goal:', err);
+        }
     }
-  };
+};
+
 
   // Delete goal
   const deleteGoal = async (id) => {
