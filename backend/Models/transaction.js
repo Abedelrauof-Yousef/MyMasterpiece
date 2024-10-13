@@ -4,12 +4,8 @@ const Schema = mongoose.Schema;
 const TransactionSchema = new Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // reference to the User model
+    ref: 'User',
     required: true,
-  },
-  date: {
-    type: Date,
-    default: Date.now,
   },
   type: {
     type: String,
@@ -23,7 +19,19 @@ const TransactionSchema = new Schema({
   description: {
     type: String,
     required: true,
-  }
+  },
+  category: {
+    type: String,
+    required: true,
+  },
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  isFixed: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

@@ -1,25 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
-import {
   User, LayoutDashboard, FileText, DollarSign, PieChart, LogOut, Target,
 } from 'lucide-react';
+import { Progress } from 'antd'; // Importing Progress bar from antd
 
 const Dashboard = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [transactions, setTransactions] = useState([]);
-  const [newIncome, setNewIncome] = useState({ amount: '', description: '' });
-  const [newExpense, setNewExpense] = useState({ amount: '', description: '' });
+  const [newIncome, setNewIncome] = useState({
+    amount: '',
+    description: '',
+    category: 'Salary',
+    customCategory: '',
+    isRecurring: false,
+    recurrenceDate: '',
+    date: '' // Adding manual date input
+  });
+  const [newExpense, setNewExpense] = useState({
+    amount: '',
+    description: '',
+    category: 'Needs',
+    customCategory: '',
+    isRecurring: false,
+    isFixed: false,
+    date: '' // Adding manual date input
+  });
   const [goals, setGoals] = useState([]);
   const [newGoal, setNewGoal] = useState({
     name: '',
     targetAmount: '',
-    salary: '',
-    monthlyExpenses: '',
-    monthlySavings: '',
+    yearsToAchieve: '',
   });
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null); // To display success message
 
   // Fetch transactions
   useEffect(() => {
@@ -70,6 +83,7 @@ const Dashboard = () => {
   // Add transaction
   const addTransaction = async (type) => {
     const transaction = type === 'income' ? newIncome : newExpense;
+
     if (transaction.amount && transaction.description) {
       try {
         const res = await fetch('http://localhost:5001/api/transactions', {
@@ -82,13 +96,40 @@ const Dashboard = () => {
             type,
             amount: parseFloat(transaction.amount),
             description: transaction.description,
+            category: transaction.category === 'Other'
+              ? transaction.customCategory
+              : transaction.category,
+            isRecurring: transaction.isRecurring,
+            isFixed: type === 'expense' ? transaction.isFixed : undefined,
+            date: transaction.date ? new Date(transaction.date) : undefined, // Add manual date
+            recurrenceDate: type === 'income' ? transaction.recurrenceDate : undefined, // For recurring income
           }),
         });
+
         const newTransaction = await res.json();
         setTransactions([...transactions, newTransaction]);
-        type === 'income'
-          ? setNewIncome({ amount: '', description: '' })
-          : setNewExpense({ amount: '', description: '' });
+
+        if (type === 'income') {
+          setNewIncome({
+            amount: '',
+            description: '',
+            category: 'Salary',
+            customCategory: '',
+            isRecurring: false,
+            recurrenceDate: '',
+            date: '' // Reset date input
+          });
+        } else {
+          setNewExpense({
+            amount: '',
+            description: '',
+            category: 'Needs',
+            customCategory: '',
+            isRecurring: false,
+            isFixed: false,
+            date: '' // Reset date input
+          });
+        }
       } catch (err) {
         console.error('Error adding transaction:', err);
       }
@@ -98,11 +139,9 @@ const Dashboard = () => {
   // Delete transaction
   const deleteTransaction = async (id) => {
     if (!id) {
-      console.error('Transaction ID is undefined');  // Log an error if ID is undefined
+      console.error('Transaction ID is undefined');
       return;
     }
-
-    console.log('Attempting to delete transaction with ID:', id);  // Log the ID
 
     try {
       const res = await fetch(`http://localhost:5001/api/transactions/${id}`, {
@@ -114,74 +153,78 @@ const Dashboard = () => {
         throw new Error(`Failed to delete transaction: ${res.status}`);
       }
 
-      setTransactions(transactions.filter((t) => t._id !== id));  // Remove the deleted transaction from the state
+      setTransactions(transactions.filter((t) => t._id !== id));
     } catch (err) {
       console.error('Error deleting transaction:', err.message);
     }
   };
 
-// Add goal with validation
-const addGoal = async () => {
-    const { name, targetAmount, salary, monthlyExpenses, monthlySavings } = newGoal;
-
-    // Parse values to integers (to handle cases where inputs are treated as strings)
-    const parsedSalary = parseInt(salary, 10);
-    const parsedMonthlyExpenses = parseInt(monthlyExpenses, 10);
-    const parsedMonthlySavings = parseInt(monthlySavings, 10);
-
-    // Condition to check for invalid input
-    if (parsedSalary <= parsedMonthlyExpenses) {
-        setError('Salary must be greater than monthly expenses.');
-        return;
+  // Add Goal
+  const addGoal = async () => {
+    if (!newGoal.name || !newGoal.targetAmount || !newGoal.yearsToAchieve) {
+      setError('All fields are required.');
+      return;
     }
 
-    if (parsedMonthlySavings > parsedSalary - parsedMonthlyExpenses) {
-        setError('Monthly savings cannot be greater than what is left from salary after expenses.');
-        return;
+    // Calculate how many months are needed based on fixed salary, expenses, and target years
+    const timeToAchieve = calculateTimeToAchieve();
+
+    if (timeToAchieve === Infinity) {
+      setError('Your fixed expenses are higher than or equal to your fixed salary. Goal cannot be achieved.');
+      return;
     }
 
-    // Clear previous errors
-    setError(null);
+    if (timeToAchieve > newGoal.yearsToAchieve * 12) {
+      setError('Your salary is not enough to achieve the goal within the specified time frame.');
+      return;
+    }
 
-    if (name && targetAmount && salary && monthlyExpenses && monthlySavings) {
+    try {
+      const res = await fetch('http://localhost:5001/api/goals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newGoal.name,
+          targetAmount: newGoal.targetAmount,
+          timeToAchieve, // Calculating based on fixed salary
+        }),
+      });
+
+      if (!res.ok) {
+        // Handling non-JSON response from the server
         try {
-            const res = await fetch('http://localhost:5001/api/goals', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    ...newGoal,
-                    salary: parsedSalary,
-                    monthlyExpenses: parsedMonthlyExpenses,
-                    monthlySavings: parsedMonthlySavings
-                }),
-            });
-            const addedGoal = await res.json();
-            setGoals([...goals, addedGoal]);
-            setNewGoal({
-                name: '',
-                targetAmount: '',
-                salary: '',
-                monthlyExpenses: '',
-                monthlySavings: '',
-            });
-        } catch (err) {
-            console.error('Error adding goal:', err);
+          const errorResponse = await res.json();
+          setError(`Error: ${errorResponse.message}`);
+        } catch (jsonError) {
+          setError(`Error adding goal: ${res.statusText}`);
         }
-    }
-};
+        return;
+      }
 
+      const addedGoal = await res.json();
+      setGoals([...goals, addedGoal]);
+      setNewGoal({
+        name: '',
+        targetAmount: '',
+        yearsToAchieve: '',
+      });
+      setSuccessMessage(`Goal added successfully! Time to achieve: ${timeToAchieve} months.`);
+      setError(null);
+    } catch (err) {
+      console.error('Error adding goal:', err);
+      setError('Error adding goal. Please try again.');
+    }
+  };
 
   // Delete goal
   const deleteGoal = async (id) => {
     if (!id) {
-      console.error('Goal ID is undefined');  // Log an error if ID is undefined
+      console.error('Goal ID is undefined');
       return;
     }
-
-    console.log('Attempting to delete goal with ID:', id);  // Log the ID
 
     try {
       const res = await fetch(`http://localhost:5001/api/goals/${id}`, {
@@ -193,28 +236,20 @@ const addGoal = async () => {
         throw new Error(`Failed to delete goal: ${res.status}`);
       }
 
-      setGoals(goals.filter((goal) => goal._id !== id));  // Remove the deleted goal from the state
+      setGoals(goals.filter((goal) => goal._id !== id));
     } catch (err) {
       console.error('Error deleting goal:', err.message);
     }
   };
 
-  const chartData = transactions
+  // Group transactions by income sources and calculate totals
+  const groupedIncomes = transactions
+    .filter((t) => t.type === 'income')
     .reduce((acc, transaction) => {
-      const date = transaction.date.split('T')[0];
-      const existingDate = acc.find((item) => item.date === date);
-      if (existingDate) {
-        existingDate[transaction.type] += transaction.amount;
-      } else {
-        acc.push({
-          date,
-          income: transaction.type === 'income' ? transaction.amount : 0,
-          expense: transaction.type === 'expense' ? transaction.amount : 0,
-        });
-      }
+      const category = transaction.category || 'Other';
+      acc[category] = (acc[category] || 0) + transaction.amount;
       return acc;
-    }, [])
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    }, {});
 
   const totalIncome = transactions.reduce(
     (sum, t) => (t.type === 'income' ? sum + t.amount : sum),
@@ -226,113 +261,62 @@ const addGoal = async () => {
   );
   const totalBalance = totalIncome - totalExpenses;
 
+  // Calculate fixed salaries and fixed expenses
+  const fixedIncomeTransactions = transactions.filter(
+    (t) => t.type === 'income' && t.isRecurring
+  );
+  const fixedExpenseTransactions = transactions.filter(
+    (t) => t.type === 'expense' && t.isFixed
+  );
+
+  // Sum up fixed salaries and expenses
+  const totalFixedSalary = fixedIncomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalFixedExpenses = fixedExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate the time to achieve goal based on fixed salary and expenses
+  const calculateTimeToAchieve = () => {
+    const availableMonthlyIncome = totalFixedSalary - totalFixedExpenses;
+    if (availableMonthlyIncome <= 0) {
+      return Infinity;
+    }
+    return Math.ceil(newGoal.targetAmount / availableMonthlyIncome);
+  };
+
   const renderView = () => {
+    const incomeTransactions = transactions.filter((t) => t.type === 'income');
+    const expenseTransactions = transactions.filter((t) => t.type === 'expense');
+
     switch (activeView) {
       case 'dashboard':
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="income" fill="#4CAF50" name="Income" />
-                  <Bar dataKey="expense" fill="#F44336" name="Expenses" />
-                </BarChart>
-              </ResponsiveContainer>
+              <h2 className="text-xl font-semibold">Income Sources</h2>
+              {Object.keys(groupedIncomes).map((source) => (
+                <div key={source}>
+                  <p className="text-lg">{source}: ${groupedIncomes[source].toFixed(2)}</p>
+                </div>
+              ))}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Income</h2>
-                <p className="text-3xl font-bold text-green-500">
-                  $ {totalIncome.toFixed(2)}
-                </p>
+                <p className="text-3xl font-bold text-green-500">${totalIncome.toFixed(2)}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Expenses</h2>
-                <p className="text-3xl font-bold text-red-500">
-                  $ {totalExpenses.toFixed(2)}
-                </p>
+                <p className="text-3xl font-bold text-red-500">${totalExpenses.toFixed(2)}</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Balance</h2>
-                <p className="text-3xl font-bold text-blue-500">
-                  $ {totalBalance.toFixed(2)}
-                </p>
+                <p className="text-3xl font-bold text-blue-500">${totalBalance.toFixed(2)}</p>
               </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
-              <div className="space-y-2">
-                {transactions
-                  .slice(-5)
-                  .reverse()
-                  .map((t) => (
-                    <div key={t._id} className="flex justify-between items-center">
-                      <span
-                        className={t.type === 'income' ? 'text-green-500' : 'text-red-500'}
-                      >
-                        {t.description}
-                      </span>
-                      <span
-                        className={t.type === 'income' ? 'text-green-500' : 'text-red-500'}
-                      >
-                        {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </>
-        );
-
-      case 'transactions':
-        return (
-          <>
-            <h1 className="text-2xl font-semibold mb-6">View Transactions</h1>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th className="text-left">Date</th>
-                    <th className="text-left">Type</th>
-                    <th className="text-left">Description</th>
-                    <th className="text-right">Amount</th>
-                    <th className="text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((t) => (
-                    <tr key={t._id}>
-                      <td>{t.date?.split('T')[0]}</td>
-                      <td className={t.type === 'income' ? 'text-green-500' : 'text-red-500'}>
-                        {t.type.charAt(0).toUpperCase() + t.type.slice(1)}
-                      </td>
-                      <td>{t.description}</td>
-                      <td className={`text-right ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                        {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
-                      </td>
-                      <td className="text-right">
-                        <button
-                          onClick={() => deleteTransaction(t._id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </>
         );
 
       case 'income':
-        const incomeTransactions = transactions.filter((t) => t.type === 'income');
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">Add Income</h1>
@@ -345,12 +329,65 @@ const addGoal = async () => {
                 className="w-full p-2 mb-4 border rounded"
               />
               <input
+                type="date"
+                value={newIncome.date}
+                onChange={(e) => setNewIncome({ ...newIncome, date: e.target.value })}
+                className="w-full p-2 mb-4 border rounded"
+              />
+              <select
+                value={newIncome.category}
+                onChange={(e) => setNewIncome({ ...newIncome, category: e.target.value })}
+                className="w-full p-2 mb-4 border rounded"
+              >
+                <option value="Salary">Salary</option>
+                <option value="Freelance">Freelance</option>
+                <option value="Other">Other</option>
+              </select>
+              {newIncome.category === 'Other' && (
+                <input
+                  type="text"
+                  placeholder="Enter category"
+                  value={newIncome.customCategory}
+                  onChange={(e) => setNewIncome({ ...newIncome, customCategory: e.target.value })}
+                  className="w-full p-2 mb-4 border rounded"
+                />
+              )}
+              <input
                 type="text"
                 placeholder="Description"
                 value={newIncome.description}
-                onChange={(e) => setNewIncome({ ...newIncome, description: e.target.value })}
+                onChange={(e) =>
+                  setNewIncome({ ...newIncome, description: e.target.value })
+                }
                 className="w-full p-2 mb-4 border rounded"
               />
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  checked={newIncome.isRecurring}
+                  onChange={(e) =>
+                    setNewIncome({ ...newIncome, isRecurring: e.target.checked })
+                  }
+                  className="mr-2"
+                />
+                <label>Is this a fixed salary (monthly)?</label>
+              </div>
+              {newIncome.isRecurring && (
+                <div className="mb-4">
+                  <label className="block mb-2">Date of the month it repeats (1-31)</label>
+                  <input
+                    type="number"
+                    placeholder="Recurrence Date"
+                    value={newIncome.recurrenceDate}
+                    onChange={(e) =>
+                      setNewIncome({ ...newIncome, recurrenceDate: e.target.value })
+                    }
+                    className="w-full p-2 mb-4 border rounded"
+                    min="1"
+                    max="31"
+                  />
+                </div>
+              )}
               <button
                 onClick={() => addTransaction('income')}
                 className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
@@ -384,7 +421,6 @@ const addGoal = async () => {
         );
 
       case 'expenses':
-        const expenseTransactions = transactions.filter((t) => t.type === 'expense');
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">Add Expense</h1>
@@ -397,12 +433,58 @@ const addGoal = async () => {
                 className="w-full p-2 mb-4 border rounded"
               />
               <input
+                type="date"
+                value={newExpense.date}
+                onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                className="w-full p-2 mb-4 border rounded"
+              />
+              <select
+                value={newExpense.category}
+                onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                className="w-full p-2 mb-4 border rounded"
+              >
+                <option value="Needs">Needs</option>
+                <option value="Wants">Wants</option>
+                <option value="Other">Other</option>
+              </select>
+              {newExpense.category === 'Other' && (
+                <input
+                  type="text"
+                  placeholder="Enter custom category"
+                  value={newExpense.customCategory}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, customCategory: e.target.value })}
+                  className="w-full p-2 mb-4 border rounded"
+                />
+              )}
+              <input
                 type="text"
                 placeholder="Description"
                 value={newExpense.description}
-                onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                onChange={(e) =>
+                  setNewExpense({ ...newExpense, description: e.target.value })}
                 className="w-full p-2 mb-4 border rounded"
               />
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  checked={newExpense.isRecurring}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, isRecurring: e.target.checked })}
+                  className="mr-2"
+                />
+                <label>Is this a recurring monthly expense?</label>
+              </div>
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  checked={newExpense.isFixed}
+                  onChange={(e) =>
+                    setNewExpense({ ...newExpense, isFixed: e.target.checked })}
+                  className="mr-2"
+                />
+                <label>Is this a fixed monthly expense (e.g., food, bills)?</label>
+              </div>
               <button
                 onClick={() => addTransaction('expense')}
                 className="bg-red-500 text-white p-2 rounded hover:bg-red-600"
@@ -439,9 +521,8 @@ const addGoal = async () => {
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">Add Goal</h1>
-
             {error && <p className="text-red-500 mb-4">{error}</p>}
-
+            {successMessage && <p className="text-green-500 mb-4">{successMessage}</p>}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
               <input
                 type="text"
@@ -459,25 +540,13 @@ const addGoal = async () => {
               />
               <input
                 type="number"
-                placeholder="Monthly Salary"
-                value={newGoal.salary}
-                onChange={(e) => setNewGoal({ ...newGoal, salary: e.target.value })}
+                placeholder="Years to Achieve"
+                value={newGoal.yearsToAchieve}
+                onChange={(e) => setNewGoal({ ...newGoal, yearsToAchieve: e.target.value })}
                 className="w-full p-2 mb-4 border rounded"
               />
-              <input
-                type="number"
-                placeholder="Monthly Expenses"
-                value={newGoal.monthlyExpenses}
-                onChange={(e) => setNewGoal({ ...newGoal, monthlyExpenses: e.target.value })}
-                className="w-full p-2 mb-4 border rounded"
-              />
-              <input
-                type="number"
-                placeholder="Monthly Savings"
-                value={newGoal.monthlySavings}
-                onChange={(e) => setNewGoal({ ...newGoal, monthlySavings: e.target.value })}
-                className="w-full p-2 mb-4 border rounded"
-              />
+              <p className="text-lg mb-4">Fixed Salary: ${totalFixedSalary.toFixed(2)}</p>
+              <p className="text-lg mb-4">Fixed Expenses: ${totalFixedExpenses.toFixed(2)}</p>
               <button
                 onClick={addGoal}
                 className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -487,19 +556,76 @@ const addGoal = async () => {
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-lg font-semibold mb-4">Your Goals</h2>
-              {goals.map((goal) => (
-                <div key={goal._id} className="mb-4 p-4 border rounded">
-                  <h3 className="font-semibold">{goal.name}</h3>
-                  <p>Target Amount: ${goal.targetAmount}</p>
-                  <p>Time to Achieve: {goal.timeToAchieve} months</p>
-                  <button
-                    onClick={() => deleteGoal(goal._id)}
-                    className="text-red-500 hover:text-red-700 mt-2"
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+              {goals.length > 0 ? (
+                goals.map((goal) => (
+                  <div key={goal._id} className="mb-4 p-4 border rounded">
+                    <h3 className="font-semibold">{goal.name}</h3>
+                    <p>Target Amount: ${goal.targetAmount}</p>
+                    <Progress percent={Math.round((goal.progress / goal.targetAmount) * 100)} />
+                    <p>Time to Achieve: {goal.timeToAchieve} months</p>
+                    <button
+                      onClick={() => deleteGoal(goal._id)}
+                      className="text-red-500 hover:text-red-700 mt-2"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">You have no goals yet.</p>
+              )}
+            </div>
+          </>
+        );
+
+      case 'transactions':
+        return (
+          <>
+            <h1 className="text-2xl font-semibold mb-6">View Transactions</h1>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left">Date</th>
+                    <th className="text-left">Type</th>
+                    <th className="text-left">Category</th>
+                    <th className="text-left">Description</th>
+                    <th className="text-right">Amount</th>
+                    <th className="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length > 0 ? (
+                    transactions.map((t) => (
+                      <tr key={t._id}>
+                        <td>{t.date ? new Date(t.date).toLocaleDateString() : 'No Date'}</td>
+                        <td className={t.type === 'income' ? 'text-green-500' : 'text-red-500'}>
+                          {t.type.charAt(0).toUpperCase() + t.type.slice(1)}
+                        </td>
+                        <td>{t.category}</td>
+                        <td>{t.description}</td>
+                        <td className={`text-right ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                          {t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)}
+                        </td>
+                        <td className="text-right">
+                          <button
+                            onClick={() => deleteTransaction(t._id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="text-center text-gray-500">
+                        No transactions found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </>
         );
@@ -511,7 +637,6 @@ const addGoal = async () => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="w-64 bg-white shadow-md">
         <div className="p-4 flex items-center space-x-4">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -526,31 +651,16 @@ const addGoal = async () => {
           <button
             onClick={() => setActiveView('dashboard')}
             className={`flex items-center px-4 py-2 w-full text-left ${
-              activeView === 'dashboard'
-                ? 'text-blue-500 bg-blue-100'
-                : 'text-gray-700'
+              activeView === 'dashboard' ? 'text-blue-500 bg-blue-100' : 'text-gray-700'
             }`}
           >
             <LayoutDashboard className="mr-4" />
             Dashboard
           </button>
           <button
-            onClick={() => setActiveView('transactions')}
-            className={`flex items-center px-4 py-2 w-full text-left ${
-              activeView === 'transactions'
-                ? 'text-blue-500 bg-blue-100'
-                : 'text-gray-700'
-            }`}
-          >
-            <FileText className="mr-4" />
-            View Transactions
-          </button>
-          <button
             onClick={() => setActiveView('income')}
             className={`flex items-center px-4 py-2 w-full text-left ${
-              activeView === 'income'
-                ? 'text-blue-500 bg-blue-100'
-                : 'text-gray-700'
+              activeView === 'income' ? 'text-blue-500 bg-blue-100' : 'text-gray-700'
             }`}
           >
             <DollarSign className="mr-4" />
@@ -559,9 +669,7 @@ const addGoal = async () => {
           <button
             onClick={() => setActiveView('expenses')}
             className={`flex items-center px-4 py-2 w-full text-left ${
-              activeView === 'expenses'
-                ? 'text-blue-500 bg-blue-100'
-                : 'text-gray-700'
+              activeView === 'expenses' ? 'text-blue-500 bg-blue-100' : 'text-gray-700'
             }`}
           >
             <PieChart className="mr-4" />
@@ -570,13 +678,20 @@ const addGoal = async () => {
           <button
             onClick={() => setActiveView('goals')}
             className={`flex items-center px-4 py-2 w-full text-left ${
-              activeView === 'goals'
-                ? 'text-blue-500 bg-blue-100'
-                : 'text-gray-700'
+              activeView === 'goals' ? 'text-blue-500 bg-blue-100' : 'text-gray-700'
             }`}
           >
             <Target className="mr-4" />
             Add Goal
+          </button>
+          <button
+            onClick={() => setActiveView('transactions')}
+            className={`flex items-center px-4 py-2 w-full text-left ${
+              activeView === 'transactions' ? 'text-blue-500 bg-blue-100' : 'text-gray-700'
+            }`}
+          >
+            <FileText className="mr-4" />
+            View Transactions
           </button>
         </nav>
         <div className="absolute bottom-4 left-4">
@@ -586,8 +701,6 @@ const addGoal = async () => {
           </button>
         </div>
       </div>
-
-      {/* Main Content */}
       <div className="flex-1 p-8 overflow-auto">{renderView()}</div>
     </div>
   );

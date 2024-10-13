@@ -4,36 +4,34 @@ const GoalSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   name: {
     type: String,
-    required: true
+    required: true,
   },
   targetAmount: {
     type: Number,
-    required: true
-  },
-  salary: {
-    type: Number,
-    required: true
+    required: true,
   },
   monthlyExpenses: {
     type: Number,
-    required: true
+    required: true,
   },
   monthlySavings: {
     type: Number,
-    required: true
+    required: true,
   },
-  timeToAchieve: {
-    type: Number,
-    required: true
+  salaryAfterExpenses: {
+    type: Number, // Salary after deducting expenses
+  },
+  calculatedTime: {
+    type: Number, // Time to achieve the goal in months
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model('Goal', GoalSchema);
