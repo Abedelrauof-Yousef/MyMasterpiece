@@ -6,6 +6,8 @@ require("dotenv").config();
 const cookieParser = require("cookie-parser");
 
 
+require('./Sheduler/recurringTransactions')
+
 app.use(
   cors({
     origin: "http://localhost:5173", // استبدل بعنوان النطاق المسموح به

@@ -1,3 +1,5 @@
+// Controllers/goalController.js
+
 const Goal = require('../Models/goal');
 const Transaction = require('../Models/transaction'); // Import transaction model to get income sources
 
@@ -6,19 +8,33 @@ const Transaction = require('../Models/transaction'); // Import transaction mode
 // @access  Private
 exports.addGoal = async (req, res) => {
   try {
-    const { name, targetAmount } = req.body; // Removed monthlyExpenses and monthlySavings since they're computed
+    const { name, targetAmount, desiredMonthlyPayment, timePeriod } = req.body;
 
     const userId = req.user.id;
 
-    if (!name || !targetAmount) {
-      return res.status(400).json({ msg: 'Name and target amount are required.' });
+    if (!name || !targetAmount || !desiredMonthlyPayment || !timePeriod) {
+      return res.status(400).json({ msg: 'All fields are required.' });
+    }
+
+    const parsedTargetAmount = parseFloat(targetAmount);
+    const parsedDesiredMonthlyPayment = parseFloat(desiredMonthlyPayment);
+    const parsedTimePeriod = parseFloat(timePeriod);
+
+    if (
+      isNaN(parsedTargetAmount) ||
+      parsedTargetAmount <= 0 ||
+      isNaN(parsedDesiredMonthlyPayment) ||
+      parsedDesiredMonthlyPayment <= 0 ||
+      isNaN(parsedTimePeriod) ||
+      parsedTimePeriod <= 0
+    ) {
+      return res.status(400).json({ msg: 'Invalid input values.' });
     }
 
     // Fetch fixed salary and expenses from transactions
     const fixedSalaryTransactions = await Transaction.find({
       userId,
       type: 'income',
-      category: 'Salary',
       isRecurring: true, // Only fixed salaries
     });
 
@@ -30,29 +46,63 @@ exports.addGoal = async (req, res) => {
 
     // Handle the case where there is no fixed salary or fixed expenses
     if (fixedSalaryTransactions.length === 0) {
-      return res.status(400).json({ msg: 'No fixed salary found. You need a fixed salary to set a goal.' });
+      return res.status(400).json({
+        msg: 'No fixed salary found. You need a fixed salary to set a goal.',
+      });
     }
 
-    const totalFixedSalary = fixedSalaryTransactions.reduce((acc, t) => acc + t.amount, 0);
-    const totalFixedExpenses = fixedExpenseTransactions.reduce((acc, t) => acc + t.amount, 0);
+    const totalFixedSalary = fixedSalaryTransactions.reduce(
+      (acc, t) => acc + t.amount,
+      0
+    );
+    const totalFixedExpenses = fixedExpenseTransactions.reduce(
+      (acc, t) => acc + t.amount,
+      0
+    );
 
-    const salaryAfterExpenses = totalFixedSalary - totalFixedExpenses;
+    // Calculate existing goals' total desired monthly payments
+    const existingGoals = await Goal.find({ user: userId });
+    const existingGoalsMonthlyPayments = existingGoals.reduce(
+      (sum, goal) => sum + goal.desiredMonthlyPayment,
+      0
+    );
 
-    // Calculate time to achieve the goal
-    const calculatedTime = salaryAfterExpenses > 0 ? targetAmount / salaryAfterExpenses : Infinity;
+    // Available income for new goals
+    const availableMonthlyIncome =
+      totalFixedSalary - totalFixedExpenses - existingGoalsMonthlyPayments;
 
-    // Check if salary is enough
-    if (salaryAfterExpenses <= 0) {
-      return res.status(400).json({ msg: 'Your fixed salary is not enough to save for this goal.' });
+    if (parsedDesiredMonthlyPayment > availableMonthlyIncome) {
+      return res.status(400).json({
+        msg: `Desired monthly payment of $${parsedDesiredMonthlyPayment.toFixed(
+          2
+        )} exceeds available income of $${availableMonthlyIncome.toFixed(
+          2
+        )}. Please increase your available income, decrease the monthly payment, or reduce your expenses.`,
+      });
+    }
+
+    // Check if desired monthly payment over the time period meets the target amount
+    const totalSavings = parsedDesiredMonthlyPayment * parsedTimePeriod;
+
+    if (totalSavings < parsedTargetAmount) {
+      return res.status(400).json({
+        msg: `With a monthly payment of $${parsedDesiredMonthlyPayment.toFixed(
+          2
+        )} over ${parsedTimePeriod} months, you will save $${totalSavings.toFixed(
+          2
+        )}, which is less than the target amount of $${parsedTargetAmount.toFixed(
+          2
+        )}. Please increase your monthly payment or extend the time period.`,
+      });
     }
 
     const newGoal = new Goal({
       user: userId,
       name,
-      targetAmount,
-      monthlyExpenses: totalFixedExpenses, // Store the fixed monthly expenses
-      monthlySavings: salaryAfterExpenses, // Store the salary left after expenses
-      calculatedTime, // Store the calculated time to achieve the goal
+      targetAmount: parsedTargetAmount,
+      desiredMonthlyPayment: parsedDesiredMonthlyPayment,
+      timePeriod: parsedTimePeriod,
+      progress: 0, // Initialize progress
     });
 
     const savedGoal = await newGoal.save();

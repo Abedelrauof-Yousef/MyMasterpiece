@@ -1,3 +1,5 @@
+// Controllers/transactionController.js
+
 const Transaction = require('../Models/transaction');
 
 // Fetch transactions for the logged-in user
@@ -14,10 +16,18 @@ exports.getTransactions = async (req, res) => {
 // Add a new transaction (income or expense)
 exports.addTransaction = async (req, res) => {
   try {
-    const { type, amount, description, category, isRecurring, isFixed } = req.body;
+    const { type, amount, description, category, date, isRecurring, recurrenceDate, isFixed, paymentMethod } = req.body;
 
+    // Validate required fields
     if (!type || !amount || !description || !category) {
       return res.status(400).json({ msg: 'Please provide all required fields' });
+    }
+
+    // Additional validation for expense transactions
+    if (type === 'expense') {
+      if (!paymentMethod) {
+        return res.status(400).json({ msg: 'Payment method is required for expenses' });
+      }
     }
 
     const newTransaction = new Transaction({
@@ -26,8 +36,11 @@ exports.addTransaction = async (req, res) => {
       amount,
       description,
       category,
+      date: date ? new Date(date) : Date.now(),
       isRecurring: isRecurring || false,
-      isFixed: isFixed || false,
+      recurrenceDate: isRecurring ? recurrenceDate : undefined,
+      isFixed: type === 'expense' ? isFixed : undefined,
+      paymentMethod: type === 'expense' ? paymentMethod : undefined,
     });
 
     const transaction = await newTransaction.save();

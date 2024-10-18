@@ -1,3 +1,5 @@
+// Models/goal.js
+
 const mongoose = require('mongoose');
 
 const GoalSchema = new mongoose.Schema({
@@ -14,19 +16,17 @@ const GoalSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  monthlyExpenses: {
+  desiredMonthlyPayment: {
     type: Number,
     required: true,
   },
-  monthlySavings: {
-    type: Number,
+  timePeriod: {
+    type: Number, // in months
     required: true,
   },
-  salaryAfterExpenses: {
-    type: Number, // Salary after deducting expenses
-  },
-  calculatedTime: {
-    type: Number, // Time to achieve the goal in months
+  progress: {
+    type: Number,
+    default: 0,
   },
   createdAt: {
     type: Date,

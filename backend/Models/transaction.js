@@ -1,3 +1,5 @@
+// Models/transaction.js
+
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
@@ -31,6 +33,20 @@ const TransactionSchema = new Schema({
   isFixed: {
     type: Boolean,
     default: false,
+  },
+  date: {
+    type: Date,
+    default: Date.now,
+  },
+  recurrenceDate: {
+    type: Number, // Day of the month (1-31)
+    min: 1,
+    max: 31,
+    required: function() { return this.isRecurring; },
+  },
+  paymentMethod: {
+    type: String, // Added paymentMethod field
+    required: function() { return this.type === 'expense'; },
   },
 });
 
