@@ -1,6 +1,7 @@
 const Post = require("../Models/post");
 const mongoose = require("mongoose");
 const path = require("path");
+const Comment = require("../Models/comment");
 
 exports.createPost = async (req, res) => {
   try {
@@ -150,5 +151,68 @@ exports.deletePost = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting post", error: error.message });
+  }
+};
+
+
+
+
+// Get Comments for a Post
+exports.getComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
+    const comments = await Comment.find({ post: id })
+      .populate("user", "username avatar")
+      .sort({ createdAt: -1 });
+
+    res.json(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Error fetching comments", error: error.message });
+  }
+};
+
+// Add a Comment to a Post
+exports.addComment = async (req, res) => {
+  try {
+    const { id } = req.params; // Post ID
+    const { content } = req.body;
+
+    // Validate input
+    if (!content || content.trim() === "") {
+      return res.status(400).json({ message: "Content is required" });
+    }
+
+    // Validate Post ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const newComment = new Comment({
+      post: id,
+      user: req.user.id,
+      content: content.trim(),
+    });
+
+    await newComment.save();
+
+    // Populate user field
+    const populatedComment = await Comment.findById(newComment._id).populate("user", "username avatar");
+
+    res.status(201).json(populatedComment);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ message: "Error adding comment", error: error.message });
   }
 };

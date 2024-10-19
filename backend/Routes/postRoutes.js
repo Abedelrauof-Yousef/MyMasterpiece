@@ -11,6 +11,10 @@ router.post('/', auth, upload.single('picture'), postController.createPost);
 // For updating a post with an optional image upload
 router.put('/:id', auth, upload.single('picture'), postController.updatePost);
 
+// Comments Routes
+router.get('/:id/comments', postController.getComments); // Get comments for a post
+router.post('/:id/comments', auth, postController.addComment); // Add a comment to a post
+
 router.get('/', postController.getAllPosts);
 router.get('/:id', postController.getPostById);
 router.delete('/:id', auth, postController.deletePost);

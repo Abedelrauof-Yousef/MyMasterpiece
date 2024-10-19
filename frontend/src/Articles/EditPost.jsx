@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
 function EditPost({ onUpdate }) {
   const [title, setTitle] = useState('');
@@ -39,6 +40,13 @@ function EditPost({ onUpdate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Optional: Validate inputs before submitting
+    if (!title.trim() && !description.trim()) {
+      setError("Title or description must be provided.");
+      return;
+    }
+
     try {
       setIsUpdating(true);
       const formData = new FormData();
@@ -58,7 +66,11 @@ function EditPost({ onUpdate }) {
           },
         }
       );
-      onUpdate(res.data); // Update the post in the parent state with populated user
+      if (typeof onUpdate === 'function') {
+        onUpdate(res.data); // Update the post in the parent state with populated user
+      } else {
+        console.error("onUpdate prop is not a function");
+      }
       setError(null);
       navigate('/articles'); // Redirect to the articles page
     } catch (error) {
@@ -68,6 +80,17 @@ function EditPost({ onUpdate }) {
       setIsUpdating(false);
     }
   };
+
+  if (error && !title && !description && !currentPicture) {
+    return (
+      <div className="flex justify-center items-center h-screen text-xl text-red-600">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error!</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto pt-16 p-6 bg-white rounded-lg shadow-md">
@@ -157,5 +180,9 @@ function EditPost({ onUpdate }) {
     </div>
   );
 }
+
+EditPost.propTypes = {
+  onUpdate: PropTypes.func.isRequired,
+};
 
 export default EditPost;

@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
 import HomePage from "./Home";
 import AboutUs from "./AboutUs/AboutUs";
@@ -10,33 +11,34 @@ import ProfilePage from "./Profile/Profile";
 import FinanceTracker from "./FinanceTracker/FinanceTracker";
 import SignUp from "./Registeration/Signup";
 import Articles from "./Articles/Articles";
-import CreatePost from "./Articles/CreatePost";
-import EditPost from "./Articles/EditPost";
 import AdminDashboard from "./admin/homePage";
-
 
 function App() {
   return (
     <div>
-    <AuthProvider>
-      <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="about" element={<AboutUs />} />
-          <Route path="pricing" element={<Pricing />} />
-          <Route path="signin" element={<SignIn />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="finance" element={<FinanceTracker />} />
-          <Route path="signup" element={<SignUp />} />
-          <Route path="articles" element={<Articles />} />
-          <Route path="create-post" element={<CreatePost />} />
-          <Route path="edit-post/:id" element={<EditPost />} />
-          <Route path="/dashboard" element={<AdminDashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Navbar />
+          <Routes>
+            {/* Top-Level Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="about" element={<AboutUs />} />
+            <Route path="pricing" element={<Pricing />} />
+            <Route path="signin" element={<SignIn />} />
+            <Route path="signup" element={<SignUp />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="finance" element={<FinanceTracker />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+
+            {/* Nested Routes for Articles */}
+            <Route path="articles/*" element={<Articles />} />
+
+            {/* Redirect any unknown routes to the HomePage */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </div>
   );
 }
