@@ -1,76 +1,139 @@
+// CreatePost.jsx
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
-function CreatePost() {
+function CreatePost({ currentUser, onPostCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [picture, setPicture] = useState("");
-  const navigate = useNavigate();
+  const [picture, setPicture] = useState(null); // Change to null to store File
+  const [preview, setPreview] = useState(null); // For image preview
+  const [isPosting, setIsPosting] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
+  const handlePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPicture(file);
+      setPreview(URL.createObjectURL(file)); // Create a preview URL
+    }
+  };
+
+  const handlePost = async (e) => {
     e.preventDefault();
+
+    // Validation: Ensure title and/or description or picture are provided
+    if (!title.trim() && !description.trim() && !picture) {
+      setError("Please add a title, description, or a picture.");
+      return;
+    }
+
     try {
-      await axios.post(
-        "http://localhost:5001/api/posts",
-        {
-          title,
-          description,
-          picture,
+      setIsPosting(true);
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      if (picture) {
+        formData.append("picture", picture);
+      }
+
+      const res = await axios.post("http://localhost:5001/api/posts", formData, {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-        { withCredentials: true }
-      );
-      navigate("/articles");
+      });
+
+      onPostCreated(res.data); // Add the new post to the list with populated user
+      setTitle("");
+      setDescription("");
+      setPicture(null);
+      setPreview(null);
+      setError(null);
     } catch (error) {
       console.error("Error creating post:", error);
+      setError("Failed to create post. Please try again.");
+    } finally {
+      setIsPosting(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-20 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Create New Post</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+    <div className="bg-white rounded-lg shadow-md p-4 mb-8">
+      <form onSubmit={handlePost} className="flex flex-col">
+        <div className="flex items-start mb-4">
+          {/* User Avatar */}
+          {currentUser && currentUser.avatar ? (
+            <img
+              src={currentUser.avatar}
+              alt={`${currentUser.username}'s avatar`}
+              className="w-12 h-12 rounded-full mr-4 object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-300 mr-4 flex items-center justify-center text-gray-700 text-xl">
+              {currentUser && currentUser.username
+                ? currentUser.username.charAt(0).toUpperCase()
+                : "U"}
+            </div>
+          )}
+          {/* Description Input */}
+          <textarea
+            className="flex-1 border border-gray-300 rounded-full p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            rows="2"
+            placeholder={`What's on your mind, ${
+              currentUser ? currentUser.username : "User"
+            }?`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          ></textarea>
+        </div>
+
+        {/* Title Input */}
+        <div className="flex items-center mb-4">
           <input
             type="text"
-            id="title"
-            placeholder="Enter title"
+            placeholder="Post Title (required)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            className="flex-1 border border-gray-300 rounded-full p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            id="description"
-            placeholder="Enter description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            rows="4"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-          ></textarea>
-        </div>
-        <div>
-          <label htmlFor="picture" className="block text-sm font-medium text-gray-700">Picture URL</label>
+
+        {/* Picture Input */}
+        <div className="flex items-center mb-4">
           <input
-            type="text"
-            id="picture"
-            placeholder="Enter picture URL"
-            value={picture}
-            onChange={(e) => setPicture(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            type="file"
+            accept="image/*"
+            onChange={handlePictureChange}
+            className="flex-1 border border-gray-300 rounded-full p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+        {/* Image Preview */}
+        {preview && (
+          <div className="mb-4">
+            <img
+              src={preview}
+              alt="Post preview"
+              className="w-full h-auto rounded-md object-cover"
+            />
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && <p className="text-red-500 mb-2">{error}</p>}
+
+        {/* Post Button */}
         <button
           type="submit"
-          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={isPosting}
+          className={`self-end px-6 py-2 rounded-full text-white ${
+            isPosting
+              ? "bg-indigo-300 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
+          } focus:outline-none focus:ring-2 focus:ring-indigo-500`}
         >
-          Create Post
+          {isPosting ? "Posting..." : "Post"}
         </button>
       </form>
     </div>

@@ -1,42 +1,79 @@
+// EditPost.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 
-function EditPost() {
+function EditPost({ onUpdate }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [picture, setPicture] = useState('');
+  const [picture, setPicture] = useState(null); // Store File
+  const [currentPicture, setCurrentPicture] = useState(''); // Existing picture URL
+  const [preview, setPreview] = useState(null); // For new image preview
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { id } = useParams();
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await axios.get(`http://localhost:5001/api/posts/${id}`);
+        const res = await axios.get(`http://localhost:5001/api/posts/${id}`, { withCredentials: true });
         setTitle(res.data.title);
         setDescription(res.data.description);
-        setPicture(res.data.picture);
+        setCurrentPicture(res.data.picture);
       } catch (error) {
         console.error('Error fetching post:', error);
+        setError("Failed to fetch post data.");
       }
     };
     fetchPost();
   }, [id]);
 
+  const handlePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPicture(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5001/api/posts/${id}`, { title, description, picture }, {withCredentials:true});
-      navigate('/articles');
+      setIsUpdating(true);
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      if (picture) {
+        formData.append("picture", picture);
+      }
+
+      const res = await axios.put(
+        `http://localhost:5001/api/posts/${id}`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      onUpdate(res.data); // Update the post in the parent state with populated user
+      setError(null);
+      navigate('/articles'); // Redirect to the articles page
     } catch (error) {
       console.error('Error updating post:', error);
+      setError("Failed to update post. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-20 p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-2xl mx-auto pt-16 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Edit Post</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Title Input */}
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
           <input
@@ -49,6 +86,8 @@ function EditPost() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           />
         </div>
+
+        {/* Description Input */}
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
           <textarea
@@ -61,23 +100,58 @@ function EditPost() {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           ></textarea>
         </div>
-        <div>
-          <label htmlFor="picture" className="block text-sm font-medium text-gray-700">Picture URL</label>
+
+        {/* Current Picture */}
+        {currentPicture && !preview && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-700">Current Picture:</p>
+            <img
+              src={currentPicture}
+              alt="Current post"
+              className="w-full h-auto rounded-md object-cover"
+            />
+          </div>
+        )}
+
+        {/* New Picture Input */}
+        <div className="flex items-center mb-4">
+          <label htmlFor="picture" className="block text-sm font-medium text-gray-700">
+            Change Picture
+          </label>
           <input
-            type="text"
-            id="picture"
-            placeholder="Enter picture URL"
-            value={picture}
-            onChange={(e) => setPicture(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            type="file"
+            accept="image/*"
+            onChange={handlePictureChange}
+            className="ml-4 flex-1 border border-gray-300 rounded-full p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+        {/* New Image Preview */}
+        {preview && (
+          <div className="mb-4">
+            <p className="text-sm text-gray-700">New Picture Preview:</p>
+            <img
+              src={preview}
+              alt="New post preview"
+              className="w-full h-auto rounded-md object-cover"
+            />
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && <p className="text-red-500">{error}</p>}
+
+        {/* Update Button */}
         <button
           type="submit"
-          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={isUpdating}
+          className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+            isUpdating
+              ? "bg-indigo-300 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
+          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
         >
-          Update Post
+          {isUpdating ? "Updating..." : "Update Post"}
         </button>
       </form>
     </div>

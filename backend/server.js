@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const cookieParser = require("cookie-parser");
+const path = require("path"); // Import path module
 
 
 require('./Sheduler/recurringTransactions')
@@ -19,6 +20,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Serve static files from 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // MongoDB setup
 const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI;
