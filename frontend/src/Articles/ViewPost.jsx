@@ -1,4 +1,4 @@
-// ViewPost.jsx
+// src/components/ViewPost.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -28,11 +28,6 @@ function ViewPost({ currentUser }) {
     };
     fetchPost();
   }, [id]);
-
-  // Update post state after editing
-  const handleUpdate = (updatedPost) => {
-    setPost(updatedPost);
-  };
 
   // Handle delete
   const handleDelete = async () => {

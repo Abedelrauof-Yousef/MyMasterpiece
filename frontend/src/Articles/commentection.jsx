@@ -1,6 +1,8 @@
-// CommentSection.jsx
+// src/components/CommentSection.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import ReplyForm from "./ReplyForm";
+import Comment from "./Comment"; // Updated Comment component
 
 function CommentSection({ postId, currentUser }) {
   const [comments, setComments] = useState([]);
@@ -9,25 +11,26 @@ function CommentSection({ postId, currentUser }) {
   const [postingComment, setPostingComment] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch comments when component mounts
+  // Fetch comments when component mounts or postId changes
+  const fetchComments = async () => {
+    try {
+      setLoadingComments(true);
+      const res = await axios.get(`http://localhost:5001/api/posts/${postId}/comments`);
+      setComments(res.data);
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      setError("Failed to load comments.");
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        setLoadingComments(true);
-        const res = await axios.get(`http://localhost:5001/api/posts/${postId}/comments`);
-        setComments(res.data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-        setError("Failed to load comments.");
-      } finally {
-        setLoadingComments(false);
-      }
-    };
     fetchComments();
   }, [postId]);
 
-  // Handle adding a new comment
+  // Handle adding a new top-level comment
   const handleAddComment = async (e) => {
     e.preventDefault();
 
@@ -40,7 +43,7 @@ function CommentSection({ postId, currentUser }) {
       setPostingComment(true);
       const res = await axios.post(
         `http://localhost:5001/api/posts/${postId}/comments`,
-        { content: newComment },
+        { content: newComment }, // No parentId for top-level comment
         { withCredentials: true }
       );
       setComments([res.data, ...comments]);
@@ -52,6 +55,37 @@ function CommentSection({ postId, currentUser }) {
     } finally {
       setPostingComment(false);
     }
+  };
+
+  // Handle adding a reply to a specific comment
+  const handleAddReply = async (parentId, replyContent) => {
+    try {
+      const res = await axios.post(
+        `http://localhost:5001/api/posts/${postId}/comments`,
+        { content: replyContent, parentId },
+        { withCredentials: true }
+      );
+      // Update the comments state by finding the parent comment and adding the reply
+      setComments((prevComments) =>
+        prevComments.map((comment) => {
+          if (comment._id === parentId) {
+            return {
+              ...comment,
+              replies: comment.replies ? [...comment.replies, res.data] : [res.data],
+            };
+          }
+          return comment;
+        })
+      );
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      alert("Failed to add reply. Please try again.");
+    }
+  };
+
+  // Refresh comments after editing or deleting
+  const refreshComments = () => {
+    fetchComments();
   };
 
   return (
@@ -94,30 +128,13 @@ function CommentSection({ postId, currentUser }) {
       ) : comments.length > 0 ? (
         <ul className="space-y-4">
           {comments.map((comment) => (
-            <li key={comment._id} className="flex">
-              {comment.user.avatar ? (
-                <img
-                  src={comment.user.avatar}
-                  alt={`${comment.user.username}'s avatar`}
-                  className="w-10 h-10 rounded-full mr-3 object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-300 mr-3 flex items-center justify-center text-gray-700 font-semibold">
-                  {comment.user.username
-                    ? comment.user.username.charAt(0).toUpperCase()
-                    : "U"}
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{comment.user.username || "User"}</p>
-                <p className="text-gray-700">{comment.content}</p>
-                <p className="text-xs text-gray-500">
-                  {comment.createdAt
-                    ? new Date(comment.createdAt).toLocaleString()
-                    : "Unknown time"}
-                </p>
-              </div>
-            </li>
+            <Comment
+              key={comment._id}
+              comment={comment}
+              currentUser={currentUser}
+              addReply={handleAddReply}
+              refreshComments={refreshComments} // Pass refreshComments to handle edits/deletions
+            />
           ))}
         </ul>
       ) : (

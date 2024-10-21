@@ -157,62 +157,214 @@ exports.deletePost = async (req, res) => {
 
 
 
-// Get Comments for a Post
-exports.getComments = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid post ID" });
-    }
-
-    const comments = await Comment.find({ post: id })
-      .populate("user", "username avatar")
-      .sort({ createdAt: -1 });
-
-    res.json(comments);
-  } catch (error) {
-    console.error("Error fetching comments:", error);
-    res.status(500).json({ message: "Error fetching comments", error: error.message });
-  }
-};
-
-// Add a Comment to a Post
+// Add a Comment or Reply to a Post
 exports.addComment = async (req, res) => {
   try {
     const { id } = req.params; // Post ID
-    const { content } = req.body;
+    const { content, parentId } = req.body; // parentId is optional
 
-    // Validate input
+    console.log("Adding comment to Post ID:", id);
+    console.log("Comment Content:", content);
+    console.log("Parent Comment ID:", parentId);
+
+    // Validate content
     if (!content || content.trim() === "") {
+      console.error("Content is required.");
       return res.status(400).json({ message: "Content is required" });
     }
 
     // Validate Post ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error("Invalid post ID format.");
       return res.status(400).json({ message: "Invalid post ID" });
     }
 
     const post = await Post.findById(id);
     if (!post) {
+      console.error("Post not found.");
       return res.status(404).json({ message: "Post not found" });
+    }
+
+    let parentComment = null;
+    if (parentId) {
+      // Validate Parent Comment ID
+      if (!mongoose.Types.ObjectId.isValid(parentId)) {
+        console.error("Invalid parent comment ID format.");
+        return res.status(400).json({ message: "Invalid parent comment ID" });
+      }
+
+      parentComment = await Comment.findById(parentId);
+      if (!parentComment) {
+        console.error("Parent comment not found.");
+        return res.status(404).json({ message: "Parent comment not found" });
+      }
+
+      // Check if parent is a reply (i.e., it has a parent itself)
+      if (parentComment.parent) {
+        console.error("Cannot reply to a reply. Only top-level comments can be replied to.");
+        return res.status(400).json({ message: "Cannot reply to a reply. Only top-level comments can be replied to." });
+      }
     }
 
     const newComment = new Comment({
       post: id,
       user: req.user.id,
       content: content.trim(),
+      parent: parentId || null,
     });
 
     await newComment.save();
 
-    // Populate user field
-    const populatedComment = await Comment.findById(newComment._id).populate("user", "username avatar");
+    const populatedComment = await Comment.findById(newComment._id)
+      .populate("user", "username avatar")
+      .populate("parent", "content user"); // Populate parent comment if applicable
 
     res.status(201).json(populatedComment);
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ message: "Error adding comment", error: error.message });
+  }
+};
+
+// Get Comments (including replies) for a Post
+exports.getComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("Fetching comments for Post ID:", id);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error("Invalid post ID format.");
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
+
+    // Fetch top-level comments
+    const comments = await Comment.find({ post: id, parent: null })
+      .populate("user", "username avatar")
+      .sort({ createdAt: -1 });
+
+    // For each top-level comment, fetch its replies
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const replies = await Comment.find({ parent: comment._id })
+          .populate("user", "username avatar")
+          .sort({ createdAt: 1 }); // Older replies first
+        return { ...comment.toObject(), replies };
+      })
+    );
+
+    res.json(commentsWithReplies);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ message: "Error fetching comments", error: error.message });
+  }
+};
+
+
+
+// Edit Comment
+exports.editComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { content } = req.body;
+
+    console.log(`Editing Comment ID: ${commentId} on Post ID: ${postId}`);
+
+    // Validate ObjectIds
+    if (
+      !mongoose.Types.ObjectId.isValid(postId) ||
+      !mongoose.Types.ObjectId.isValid(commentId)
+    ) {
+      console.error("Invalid Post ID or Comment ID format.");
+      return res.status(400).json({ message: "Invalid Post ID or Comment ID" });
+    }
+
+    // Find the comment
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      console.error("Comment not found.");
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // Check if the comment belongs to the specified post
+    if (comment.post.toString() !== postId) {
+      console.error("Comment does not belong to the specified post.");
+      return res.status(400).json({ message: "Comment does not belong to the specified post." });
+    }
+
+    // Check if the user is authorized to edit the comment
+    if (comment.user.toString() !== req.user.id) {
+      console.error("User not authorized to edit this comment.");
+      return res.status(403).json({ message: "User not authorized to edit this comment." });
+    }
+
+    // Validate content
+    if (!content || content.trim() === "") {
+      console.error("Content is required.");
+      return res.status(400).json({ message: "Content is required." });
+    }
+
+    // Update the comment
+    comment.content = content.trim();
+    comment.updatedAt = Date.now();
+    await comment.save();
+
+    // Populate user field
+    const updatedComment = await Comment.findById(commentId).populate("user", "username avatar");
+
+    res.json(updatedComment);
+  } catch (error) {
+    console.error("Error editing comment:", error);
+    res.status(500).json({ message: "Error editing comment", error: error.message });
+  }
+};
+
+// Delete Comment
+exports.deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+
+    console.log(`Deleting Comment ID: ${commentId} from Post ID: ${postId}`);
+
+    // Validate ObjectIds
+    if (
+      !mongoose.Types.ObjectId.isValid(postId) ||
+      !mongoose.Types.ObjectId.isValid(commentId)
+    ) {
+      console.error("Invalid Post ID or Comment ID format.");
+      return res.status(400).json({ message: "Invalid Post ID or Comment ID" });
+    }
+
+    // Find the comment
+    const comment = await Comment.findById(commentId);
+    if (!comment) {
+      console.error("Comment not found.");
+      return res.status(404).json({ message: "Comment not found." });
+    }
+
+    // Check if the comment belongs to the specified post
+    if (comment.post.toString() !== postId) {
+      console.error("Comment does not belong to the specified post.");
+      return res.status(400).json({ message: "Comment does not belong to the specified post." });
+    }
+
+    // Check if the user is authorized to delete the comment
+    if (comment.user.toString() !== req.user.id) {
+      console.error("User not authorized to delete this comment.");
+      return res.status(403).json({ message: "User not authorized to delete this comment." });
+    }
+
+    // Delete the comment
+    await Comment.findByIdAndDelete(commentId);
+
+    // If it's a parent comment, delete its replies
+    if (!comment.parent) {
+      await Comment.deleteMany({ parent: commentId });
+      console.log(`Deleted all replies for Comment ID: ${commentId}`);
+    }
+
+    res.json({ message: "Comment deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    res.status(500).json({ message: "Error deleting comment", error: error.message });
   }
 };

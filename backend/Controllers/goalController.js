@@ -119,7 +119,25 @@ exports.addGoal = async (req, res) => {
 exports.getGoals = async (req, res) => {
   try {
     const goals = await Goal.find({ user: req.user.id });
-    res.json(goals);
+
+    // Calculate progress for each goal
+    const updatedGoals = goals.map(goal => {
+      const monthsElapsed = Math.floor(
+        (new Date() - new Date(goal.createdAt)) / (1000 * 60 * 60 * 24 * 30)
+      );
+      const progress = monthsElapsed * goal.desiredMonthlyPayment;
+
+      // Ensure progress does not exceed targetAmount
+      const cappedProgress = Math.min(progress, goal.targetAmount);
+
+      return {
+        ...goal.toObject(),
+        progress: cappedProgress,
+        monthsElapsed,
+      };
+    });
+
+    res.json(updatedGoals);
   } catch (error) {
     console.error('Error fetching goals:', error.message); // Added error logging
     res.status(500).json({ message: error.message });

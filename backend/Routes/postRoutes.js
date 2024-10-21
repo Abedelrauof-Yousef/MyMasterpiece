@@ -13,7 +13,11 @@ router.put('/:id', auth, upload.single('picture'), postController.updatePost);
 
 // Comments Routes
 router.get('/:id/comments', postController.getComments); // Get comments for a post
-router.post('/:id/comments', auth, postController.addComment); // Add a comment to a post
+router.post('/:id/comments', auth, postController.addComment); // Add a comment or reply to a post
+
+// **New Routes for Editing and Deleting Comments**
+router.put('/:postId/comments/:commentId', auth, postController.editComment); // Edit a comment
+router.delete('/:postId/comments/:commentId', auth, postController.deleteComment); // Delete a comment
 
 router.get('/', postController.getAllPosts);
 router.get('/:id', postController.getPostById);

@@ -3,8 +3,9 @@ import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import AboutBudgetWiseHub from './components/AboutBudget';
 import WhyChooseUs from './components/WhyChooseUs';
-import ArticlesCarousel from './ArticleCards/ArticlesCarousel';
 import Footer from './components/Footer';
+import PartnersSlider from './components/PartnersSlider';
+import GoalTracker from './components/GoalTracker';
 
 function HomePage() {
   return (
@@ -14,7 +15,8 @@ function HomePage() {
         <HeroSection />
         <AboutBudgetWiseHub />
         <WhyChooseUs />
-        <ArticlesCarousel />
+        <GoalTracker />
+        <PartnersSlider />
       </main>
       <Footer />
     </div>

@@ -18,6 +18,11 @@ const CommentSchema = new mongoose.Schema(
       required: true,
       maxlength: 500,
     },
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null, // Indicates a top-level comment
+    },
   },
   { timestamps: true }
 );

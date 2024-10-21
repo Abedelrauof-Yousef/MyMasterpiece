@@ -396,9 +396,7 @@ const Dashboard = () => {
       .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
     const salaryExpenses = transactions
-      .filter(
-        (t) => t.type === "expense" && t.paymentMethod === "Salary"
-      )
+      .filter((t) => t.type === "expense" && t.paymentMethod === "Salary")
       .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
     const availableSalaryIncome =
@@ -608,7 +606,10 @@ const Dashboard = () => {
                         100
                       )}
                     />
-                    <p>Time to Achieve: {(goal.timePeriod ?? 0)} months</p>
+                    <p>
+                      Time to Achieve: {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)}{" "}
+                      months
+                    </p>
                   </div>
                 ))
               ) : (
@@ -1076,7 +1077,6 @@ const Dashboard = () => {
                 className="w-full p-2 mb-4 border rounded"
                 min="0"
               />
-              {/* Removed Time Period Input */}
               <p className="text-lg mb-4">
                 Fixed Salary: ${(totalFixedSalary ?? 0).toFixed(2)}
               </p>
@@ -1115,7 +1115,10 @@ const Dashboard = () => {
                         100
                       )}
                     />
-                    <p>Time to Achieve: {(goal.timePeriod ?? 0)} months</p>
+                    <p>
+                      Time Remaining:{" "}
+                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)} months
+                    </p>
                     <button
                       onClick={() => deleteGoal(goal._id)}
                       className="text-red-500 hover:text-red-700 mt-2"
