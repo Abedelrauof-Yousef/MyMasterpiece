@@ -6,6 +6,7 @@ import WhyChooseUs from './components/WhyChooseUs';
 import Footer from './components/Footer';
 import PartnersSlider from './components/PartnersSlider';
 import GoalTracker from './components/GoalTracker';
+import FAQSection from './components/FqaSection';
 
 function HomePage() {
   return (
@@ -17,6 +18,7 @@ function HomePage() {
         <WhyChooseUs />
         <GoalTracker />
         <PartnersSlider />
+        <FAQSection />
       </main>
       <Footer />
     </div>

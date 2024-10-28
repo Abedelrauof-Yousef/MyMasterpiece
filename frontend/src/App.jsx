@@ -8,7 +8,6 @@ import Pricing from "./PricingPage/Pricing";
 import Contact from "./ContactPage/Contact";
 import SignIn from "./Registeration/Sign";
 import ProfilePage from "./Profile/Profile";
-import FinanceTracker from "./FinanceTracker/FinanceTracker";
 import SignUp from "./Registeration/Signup";
 import Articles from "./Articles/Articles";
 import AdminDashboard from "./admin/homePage";
@@ -28,7 +27,6 @@ function App() {
             <Route path="signup" element={<SignUp />} />
             <Route path="contact" element={<Contact />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="finance" element={<FinanceTracker />} />
             <Route path="dashboard" element={<AdminDashboard />} />
 
             {/* Nested Routes for Articles */}

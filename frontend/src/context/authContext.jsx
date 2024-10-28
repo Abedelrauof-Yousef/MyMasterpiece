@@ -6,7 +6,8 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // Initially null
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if the user is authenticated (on initial load or refresh)
   useEffect(() => {
@@ -16,6 +17,8 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(response.data.isAuthenticated);
       } catch (error) {
         setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
     checkAuthStatus();
@@ -32,7 +35,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

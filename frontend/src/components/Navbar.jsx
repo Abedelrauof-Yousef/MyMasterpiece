@@ -1,3 +1,5 @@
+// src/components/Navbar.jsx
+
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/authContext';
 import { Link } from 'react-router-dom';
@@ -31,6 +33,9 @@ function Navbar() {
               <NavLink to="/">Home</NavLink>
               <NavLink to="/about">About Us</NavLink>
               <NavLink to="/contact">Contact Us</NavLink>
+              {isAuthenticated && (
+                <NavLink to="/articles">Articles</NavLink> // Show "Articles" only if logged in
+              )}
               {isAuthenticated ? (
                 <button
                   onClick={handleLogout}

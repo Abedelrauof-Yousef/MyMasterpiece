@@ -1,6 +1,5 @@
 // src/components/Dashboard.jsx
-
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useContext } from "react";
 import {
   User,
   LayoutDashboard,
@@ -9,16 +8,60 @@ import {
   PieChart,
   LogOut,
   Target,
+  Settings,
 } from "lucide-react";
 import CustomProgress from "../components/CustomProgress"; // Adjust the import path as needed
+import { AuthContext } from "../context/authContext"; // Import AuthContext
 
 const Dashboard = () => {
+  const { isAuthenticated, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-xl">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded shadow-md text-center">
+          <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
+          <p className="mb-6">
+            You must be signed in to access the profile dashboard.
+          </p>
+          <a
+            href="/signin"
+            className="text-blue-500 hover:underline font-semibold"
+          >
+            Go to Sign In
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   // State Management
   const [activeView, setActiveView] = useState("dashboard");
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // State for user
+  const [user, setUser] = useState(null);
+  const [userError, setUserError] = useState(null);
+  const [userLoading, setUserLoading] = useState(true);
+
+  // State for settings
+  const [settingsData, setSettingsData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    profilePicture: null,
+  });
 
   // States for adding income
   const [newIncome, setNewIncome] = useState({
@@ -50,6 +93,37 @@ const Dashboard = () => {
     targetAmount: "",
     desiredMonthlyPayment: "",
   });
+
+  // Fetch User
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("http://localhost:5001/api/users/me", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch user: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setUser(data);
+        setUserLoading(false);
+        // Set initial settings data
+        setSettingsData((prevData) => ({
+          ...prevData,
+          username: data.username,
+        }));
+      } catch (err) {
+        console.error("Error fetching user:", err.message);
+        setUserError("Failed to load user data.");
+        setUserLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   // Fetch Transactions
   useEffect(() => {
@@ -244,7 +318,7 @@ const Dashboard = () => {
         setError(
           `Cannot add expense of $${amount.toFixed(
             2
-          )} from "${selectedMethod}". Available balance for this method is $${availableForMethod.toFixed(
+          )} from "${selectedMethod}". Available balance for this payment method is $${availableForMethod.toFixed(
             2
           )}. Please choose a different payment method or reduce the expense amount.`
         );
@@ -544,6 +618,62 @@ const Dashboard = () => {
     return income - expenses;
   }, [totalIncome, totalExpenses]);
 
+  // Handle Settings Submit
+  const handleSettingsSubmit = async (e) => {
+    e.preventDefault();
+    // Validation
+    if (settingsData.password !== settingsData.confirmPassword) {
+      setError("Passwords do not match.");
+      setSuccessMessage(null);
+      return;
+    }
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append("username", settingsData.username);
+    if (settingsData.password) {
+      formData.append("password", settingsData.password);
+    }
+    if (settingsData.profilePicture) {
+      formData.append("profilePicture", settingsData.profilePicture);
+    }
+
+    try {
+      const res = await fetch("http://localhost:5001/api/users/update", {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        let errorMessage = `Failed to update settings: ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.msg || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON
+        }
+        throw new Error(errorMessage);
+      }
+
+      const updatedUser = await res.json();
+      setUser(updatedUser);
+      setSuccessMessage("Settings updated successfully!");
+      setError(null);
+      // Reset password fields
+      setSettingsData((prevData) => ({
+        ...prevData,
+        password: "",
+        confirmPassword: "",
+        profilePicture: null,
+      }));
+    } catch (err) {
+      console.error("Error updating settings:", err.message);
+      setError(err.message);
+      setSuccessMessage(null);
+    }
+  };
+
   // Render Views
   const renderView = () => {
     const incomeTransactions = transactions.filter((t) => t.type === "income");
@@ -559,7 +689,8 @@ const Dashboard = () => {
               {Object.keys(netIncomesPerCategory).map((source) => (
                 <div key={source}>
                   <p className="text-lg">
-                    {source}: ${(netIncomesPerCategory[source] ?? 0).toFixed(2)}
+                    {source}: $
+                    {Number(netIncomesPerCategory[source]).toFixed(2)}
                   </p>
                 </div>
               ))}
@@ -568,19 +699,19 @@ const Dashboard = () => {
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Income</h2>
                 <p className="text-3xl font-bold text-green-500">
-                  ${(totalIncome ?? 0).toFixed(2)}
+                  ${Number(totalIncome).toFixed(2)}
                 </p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Expenses</h2>
                 <p className="text-3xl font-bold text-red-500">
-                  ${(totalExpenses ?? 0).toFixed(2)}
+                  ${Number(totalExpenses).toFixed(2)}
                 </p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-lg font-semibold mb-2">Total Balance</h2>
                 <p className="text-3xl font-bold text-blue-500">
-                  ${(totalBalance ?? 0).toFixed(2)}
+                  ${Number(totalBalance).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -591,24 +722,26 @@ const Dashboard = () => {
                 goals.map((goal) => (
                   <div key={goal._id} className="mb-4">
                     <h3 className="font-semibold">{goal.name}</h3>
-                    <p>Target Amount: ${(goal.targetAmount ?? 0).toFixed(2)}</p>
+                    <p>Target Amount: ${Number(goal.targetAmount).toFixed(2)}</p>
                     <p>
                       Desired Monthly Payment: $
-                      {(goal.desiredMonthlyPayment ?? 0).toFixed(2)}
+                      {Number(goal.desiredMonthlyPayment).toFixed(2)}
                     </p>
                     <p>
-                      Time Period: {((goal.timePeriod ?? 0) / 12).toFixed(1)} years (
-                      {(goal.timePeriod ?? 0)} months)
+                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)} years (
+                      {Number(goal.timePeriod)} months)
                     </p>
                     <CustomProgress
                       percent={Math.min(
-                        Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100),
+                        Math.round(
+                          ((goal.progress || 0) / (goal.targetAmount || 1)) * 100
+                        ),
                         100
                       )}
                     />
                     <p>
-                      Time to Achieve: {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)}{" "}
-                      months
+                      Time to Achieve:{" "}
+                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)} months
                     </p>
                   </div>
                 ))
@@ -746,7 +879,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center">
                         <p className="text-green-500 mr-4">
-                          +${(t.amount ?? 0).toFixed(2)}
+                          +${Number(t.amount).toFixed(2)}
                         </p>
                         <button
                           onClick={() => deleteTransaction(t._id)}
@@ -780,7 +913,7 @@ const Dashboard = () => {
                 <p className="text-lg mb-4">
                   Available Income for Expenses:{" "}
                   <span className="font-semibold">
-                    ${(availableIncome ?? 0).toFixed(2)}
+                    ${Number(availableIncome).toFixed(2)}
                   </span>
                 </p>
                 <input
@@ -845,9 +978,9 @@ const Dashboard = () => {
                   >
                     Salary{" "}
                     {availablePerCategory["Salary"] > 0
-                      ? `(Available: $${availablePerCategory["Salary"].toFixed(
-                          2
-                        )})`
+                      ? `(Available: $${Number(
+                          availablePerCategory["Salary"]
+                        ).toFixed(2)})`
                       : "(No funds available)"}
                   </option>
                   <option
@@ -856,9 +989,9 @@ const Dashboard = () => {
                   >
                     Freelance{" "}
                     {availablePerCategory["Freelance"] > 0
-                      ? `(Available: $${availablePerCategory["Freelance"].toFixed(
-                          2
-                        )})`
+                      ? `(Available: $${Number(
+                          availablePerCategory["Freelance"]
+                        ).toFixed(2)})`
                       : "(No funds available)"}
                   </option>
                   {/* Dynamically add other income categories */}
@@ -875,9 +1008,9 @@ const Dashboard = () => {
                       >
                         {category}{" "}
                         {(availablePerCategory[category] ?? 0) > 0
-                          ? `(Available: $${availablePerCategory[
-                              category
-                            ].toFixed(2)})`
+                          ? `(Available: $${Number(
+                              availablePerCategory[category]
+                            ).toFixed(2)})`
                           : "(No funds available)"}
                       </option>
                     ))}
@@ -1006,7 +1139,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center">
                         <p className="text-red-500 mr-4">
-                          -${(t.amount ?? 0).toFixed(2)}
+                          -${Number(t.amount).toFixed(2)}
                         </p>
                         <button
                           onClick={() => deleteTransaction(t._id)}
@@ -1078,14 +1211,14 @@ const Dashboard = () => {
                 min="0"
               />
               <p className="text-lg mb-4">
-                Fixed Salary: ${(totalFixedSalary ?? 0).toFixed(2)}
+                Fixed Salary: ${Number(totalFixedSalary).toFixed(2)}
               </p>
               <p className="text-lg mb-4">
-                Fixed Expenses: ${(totalFixedExpenses ?? 0).toFixed(2)}
+                Fixed Expenses: ${Number(totalFixedExpenses).toFixed(2)}
               </p>
               <p className="text-lg mb-4">
                 Existing Goals Monthly Payments: $
-                {(existingGoalsMonthlyPayments ?? 0).toFixed(2)}
+                {Number(existingGoalsMonthlyPayments).toFixed(2)}
               </p>
               <button
                 onClick={addGoal}
@@ -1100,18 +1233,20 @@ const Dashboard = () => {
                 goals.map((goal) => (
                   <div key={goal._id} className="mb-4 p-4 border rounded">
                     <h3 className="font-semibold">{goal.name}</h3>
-                    <p>Target Amount: ${(goal.targetAmount ?? 0).toFixed(2)}</p>
+                    <p>Target Amount: ${Number(goal.targetAmount).toFixed(2)}</p>
                     <p>
                       Desired Monthly Payment: $
-                      {(goal.desiredMonthlyPayment ?? 0).toFixed(2)}
+                      {Number(goal.desiredMonthlyPayment).toFixed(2)}
                     </p>
                     <p>
-                      Time Period: {((goal.timePeriod ?? 0) / 12).toFixed(1)} years (
-                      {(goal.timePeriod ?? 0)} months)
+                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)} years (
+                      {Number(goal.timePeriod)} months)
                     </p>
                     <CustomProgress
                       percent={Math.min(
-                        Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100),
+                        Math.round(
+                          ((goal.progress || 0) / (goal.targetAmount || 1)) * 100
+                        ),
                         100
                       )}
                     />
@@ -1138,6 +1273,7 @@ const Dashboard = () => {
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">View Transactions</h1>
+            {/* Removed the Settings button from here */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <table className="w-full">
                 <thead>
@@ -1162,9 +1298,7 @@ const Dashboard = () => {
                         </td>
                         <td
                           className={`px-4 py-2 ${
-                            t.type === "income"
-                              ? "text-green-500"
-                              : "text-red-500"
+                            t.type === "income" ? "text-green-500" : "text-red-500"
                           }`}
                         >
                           {t.type.charAt(0).toUpperCase() + t.type.slice(1)}
@@ -1173,13 +1307,11 @@ const Dashboard = () => {
                         <td className="px-4 py-2">{t.description}</td>
                         <td
                           className={`px-4 py-2 text-right ${
-                            t.type === "income"
-                              ? "text-green-500"
-                              : "text-red-500"
+                            t.type === "income" ? "text-green-500" : "text-red-500"
                           }`}
                         >
                           {t.type === "income" ? "+" : "-"}$
-                          {(t.amount ?? 0).toFixed(2)}
+                          {Number(t.amount).toFixed(2)}
                           {t.isRecurring && (
                             <span className="ml-2 text-xs text-blue-500">
                               (Recurring on {t.recurrenceDate})
@@ -1218,8 +1350,125 @@ const Dashboard = () => {
           </>
         );
 
+      case "settings":
+        return (
+          <>
+            <h1 className="text-2xl font-semibold mb-6">Settings</h1>
+            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {successMessage && (
+              <p className="text-green-500 mb-4">{successMessage}</p>
+            )}
+            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+              <form onSubmit={handleSettingsSubmit}>
+                {/* Username */}
+                <div className="mb-4">
+                  <label className="block mb-2">Username</label>
+                  <input
+                    type="text"
+                    value={settingsData.username}
+                    onChange={(e) =>
+                      setSettingsData({
+                        ...settingsData,
+                        username: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+                {/* Password */}
+                <div className="mb-4">
+                  <label className="block mb-2">New Password</label>
+                  <input
+                    type="password"
+                    value={settingsData.password}
+                    onChange={(e) =>
+                      setSettingsData({
+                        ...settingsData,
+                        password: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded"
+                    placeholder="Leave blank to keep current password"
+                  />
+                </div>
+                {/* Confirm Password */}
+                <div className="mb-4">
+                  <label className="block mb-2">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={settingsData.confirmPassword}
+                    onChange={(e) =>
+                      setSettingsData({
+                        ...settingsData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border rounded"
+                    placeholder="Leave blank if not changing password"
+                  />
+                </div>
+                {/* Profile Picture */}
+                <div className="mb-4">
+                  <label className="block mb-2">Profile Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setSettingsData({
+                        ...settingsData,
+                        profilePicture: e.target.files[0],
+                      })
+                    }
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                {/* Current Profile Picture */}
+                {user && user.profilePicture && (
+                  <div className="mb-4">
+                    <p className="mb-2">Current Profile Picture:</p>
+                    <img
+                      src={`http://localhost:5001${user.profilePicture}`}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  </div>
+                )}
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                >
+                  Save Changes
+                </button>
+              </form>
+            </div>
+          </>
+        );
+
       default:
         return null;
+    }
+  };
+
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/users/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to logout: ${res.status}`);
+      }
+
+      // Optionally, you can refresh the authentication status or redirect
+      window.location.href = "/signin"; // Redirect to sign-in page
+    } catch (err) {
+      console.error("Error logging out:", err.message);
+      setError("Failed to logout.");
+      setSuccessMessage(null);
     }
   };
 
@@ -1227,13 +1476,27 @@ const Dashboard = () => {
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-md relative">
-        <div className="p-4 flex items-center space-x-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <User className="text-blue-500" />
-          </div>
+        {/* User Info */}
+        <div className="p-4 flex items-center space-x-4 mt-16">
+          {user && user.profilePicture ? (
+            <img
+              src={`http://localhost:5001${user.profilePicture}`}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <User className="text-blue-500" />
+            </div>
+          )}
           <div>
-            <h2 className="font-semibold">Mike</h2>
-            <p className="text-sm text-gray-500">Your Money</p>
+            {userLoading ? (
+              <h2 className="font-semibold">Loading...</h2>
+            ) : userError ? (
+              <h2 className="font-semibold">User</h2>
+            ) : (
+              <h2 className="font-semibold">{user.username}</h2>
+            )}
           </div>
         </div>
         <nav className="mt-8">
@@ -1292,9 +1555,24 @@ const Dashboard = () => {
             <FileText className="mr-4" />
             View Transactions
           </button>
+          {/* Settings Button */}
+          <button
+            onClick={() => setActiveView("settings")}
+            className={`flex items-center px-4 py-2 w-full text-left ${
+              activeView === "settings"
+                ? "text-blue-500 bg-blue-100"
+                : "text-gray-700"
+            } hover:bg-gray-200`}
+          >
+            <Settings className="mr-4" />
+            Settings
+          </button>
         </nav>
         <div className="absolute bottom-4 left-4">
-          <button className="flex items-center text-gray-700 hover:text-red-500">
+          <button
+            onClick={handleLogout}
+            className="flex items-center text-gray-700 hover:text-red-500"
+          >
             <LogOut className="mr-2" />
             Sign Out
           </button>
@@ -1302,7 +1580,14 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 overflow-auto">{renderView()}</div>
+      <div className="flex-1 p-8 overflow-auto">
+        {userError && <p className="text-red-500">{userError}</p>}
+        {userLoading ? (
+          <p>Loading user data...</p>
+        ) : (
+          renderView()
+        )}
+      </div>
     </div>
   );
 };

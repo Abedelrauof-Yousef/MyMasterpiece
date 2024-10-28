@@ -1,3 +1,4 @@
+// Controllers/userController.js
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../Models/users");
@@ -85,5 +86,47 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
+  }
+};
+
+// Update User function
+exports.updateUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { username, password } = req.body;
+    let profilePicture = req.file ? req.file.filename : null;
+
+    const updateFields = {};
+
+    if (username) {
+      // Check if username is already taken
+      const existingUser = await User.findOne({ username });
+      if (existingUser && existingUser._id.toString() !== userId) {
+        return res.status(400).json({ msg: "Username is already taken." });
+      }
+      updateFields.username = username;
+    }
+
+    if (password) {
+      // Hash the new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      updateFields.password = hashedPassword;
+    }
+
+    if (profilePicture) {
+      updateFields.profilePicture = `/uploads/${profilePicture}`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateFields },
+      { new: true }
+    ).select("-password"); // Exclude password from the returned user
+
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Error updating user:", err.message);
+    res.status(500).json({ msg: "Server error" });
   }
 };
