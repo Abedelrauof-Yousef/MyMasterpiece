@@ -1,31 +1,45 @@
 // models/Post.js
-const mongoose = require('mongoose');
+
+const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
   picture: {
     type: String,
   },
   title: {
     type: String,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "denied"],
+    default: "pending",
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Post', postSchema);
+// Middleware to update `updatedAt` before saving
+postSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+const Post = mongoose.model("Post", postSchema);
+
+module.exports = Post;

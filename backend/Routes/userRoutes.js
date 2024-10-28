@@ -9,7 +9,7 @@ const {
 const auth = require("../Middleware/userAuth"); // Import your auth middleware
 const User = require("../Models/users"); // Import the User model
 const upload = require("../Middleware/upload"); // Import upload middleware
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 router.post("/register", register);
 router.post("/login", login);
@@ -47,11 +47,6 @@ router.get("/me", auth, async (req, res) => {
 });
 
 // New route to update user settings
-router.put(
-  "/update",
-  auth,
-  upload.single("profilePicture"),
-  updateUser
-);
+router.put("/update", auth, upload.single("profilePicture"), updateUser);
 
 module.exports = router;

@@ -43,6 +43,12 @@ app.use("/api/posts", require("./Routes/postRoutes"));
 
 app.use("/api/transactions", require("./Routes/transactionRoutes"));
 app.use("/api/goals", require("./Routes/goalRoutes"));
+app.use("/api/payments", require("./Routes/paymentRoutes"));
 
+
+// Admin Routes
+app.use("/api/admin/users", require("./Routes/adminUserRoutes"));
+app.use("/api/admin/posts", require("./Routes/adminPostRoutes"));
+app.use("/api/admin/contact", require("./Routes/adminContactRoutes"));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

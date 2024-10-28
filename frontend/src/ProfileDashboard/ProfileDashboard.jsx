@@ -1,4 +1,5 @@
 // src/components/Dashboard.jsx
+
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import {
   User,
@@ -12,58 +13,29 @@ import {
 } from "lucide-react";
 import CustomProgress from "../components/CustomProgress"; // Adjust the import path as needed
 import { AuthContext } from "../context/authContext"; // Import AuthContext
+import { PayPalButtons } from "@paypal/react-paypal-js"; // Import PayPalButtons
 
 const Dashboard = () => {
-  const { isAuthenticated, isLoading } = useContext(AuthContext);
+  const { isAuthenticated, isLoading: authLoading } = useContext(AuthContext);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-xl">Loading...</p>
-      </div>
-    );
-  }
+  // Subscription and User States
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="bg-white p-8 rounded shadow-md text-center">
-          <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
-          <p className="mb-6">
-            You must be signed in to access the profile dashboard.
-          </p>
-          <a
-            href="/signin"
-            className="text-blue-500 hover:underline font-semibold"
-          >
-            Go to Sign In
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // State Management
-  const [activeView, setActiveView] = useState("dashboard");
-  const [transactions, setTransactions] = useState([]);
-  const [goals, setGoals] = useState([]);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-
-  // State for user
   const [user, setUser] = useState(null);
   const [userError, setUserError] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
 
-  // State for settings
-  const [settingsData, setSettingsData] = useState({
-    username: "",
-    password: "",
-    confirmPassword: "",
-    profilePicture: null,
-  });
+  // UI States
+  const [activeView, setActiveView] = useState("dashboard");
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  // States for adding income
+  // Transaction and Goal States
+  const [transactions, setTransactions] = useState([]);
+  const [goals, setGoals] = useState([]);
+
+  // Form States
   const [newIncome, setNewIncome] = useState({
     amount: "",
     description: "",
@@ -74,7 +46,6 @@ const Dashboard = () => {
     date: "",
   });
 
-  // States for adding expense
   const [newExpense, setNewExpense] = useState({
     amount: "",
     description: "",
@@ -87,14 +58,25 @@ const Dashboard = () => {
     paymentMethod: "",
   });
 
-  // States for adding goal
   const [newGoal, setNewGoal] = useState({
     name: "",
     targetAmount: "",
     desiredMonthlyPayment: "",
   });
 
-  // Fetch User
+  // Settings State
+  const [settingsData, setSettingsData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+    profilePicture: null,
+  });
+
+  // Timer States
+  const [trialTimeRemaining, setTrialTimeRemaining] = useState(null);
+  const [nextPaymentTimeRemaining, setNextPaymentTimeRemaining] = useState(null);
+
+  // Fetch User Data and Subscription Status
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -110,15 +92,21 @@ const Dashboard = () => {
         const data = await res.json();
         setUser(data);
         setUserLoading(false);
-        // Set initial settings data
+
+        // Initialize settings data
         setSettingsData((prevData) => ({
           ...prevData,
-          username: data.username,
+          username: data.username || "",
         }));
+
+        // Set subscription status
+        setSubscriptionStatus(data.subscriptionStatus);
+        setIsLoadingSubscription(false);
       } catch (err) {
         console.error("Error fetching user:", err.message);
         setUserError("Failed to load user data.");
         setUserLoading(false);
+        setIsLoadingSubscription(false);
       }
     };
 
@@ -259,11 +247,6 @@ const Dashboard = () => {
     () => calculateAvailablePerCategory(),
     [transactions, existingGoalsMonthlyPayments]
   );
-
-  // Debugging: Log availablePerCategory
-  useEffect(() => {
-    console.log("Available Per Category:", availablePerCategory);
-  }, [availablePerCategory]);
 
   // Add Transaction (Income or Expense)
   const addTransaction = async (type) => {
@@ -674,10 +657,33 @@ const Dashboard = () => {
     }
   };
 
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/users/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to logout: ${res.status}`);
+      }
+
+      // Redirect to sign-in page
+      window.location.href = "/signin";
+    } catch (err) {
+      console.error("Error logging out:", err.message);
+      setError("Failed to logout.");
+      setSuccessMessage(null);
+    }
+  };
+
   // Render Views
   const renderView = () => {
     const incomeTransactions = transactions.filter((t) => t.type === "income");
-    const expenseTransactions = transactions.filter((t) => t.type === "expense");
+    const expenseTransactions = transactions.filter(
+      (t) => t.type === "expense"
+    );
 
     switch (activeView) {
       case "dashboard":
@@ -717,31 +723,37 @@ const Dashboard = () => {
             </div>
             {/* Goals Overview */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-xl font-semibold mb-4">Your Goals Overview</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Your Goals Overview
+              </h2>
               {goals.length > 0 ? (
                 goals.map((goal) => (
                   <div key={goal._id} className="mb-4">
                     <h3 className="font-semibold">{goal.name}</h3>
-                    <p>Target Amount: ${Number(goal.targetAmount).toFixed(2)}</p>
+                    <p>
+                      Target Amount: ${Number(goal.targetAmount).toFixed(2)}
+                    </p>
                     <p>
                       Desired Monthly Payment: $
                       {Number(goal.desiredMonthlyPayment).toFixed(2)}
                     </p>
                     <p>
-                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)} years (
-                      {Number(goal.timePeriod)} months)
+                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)}{" "}
+                      years ({Number(goal.timePeriod)} months)
                     </p>
                     <CustomProgress
                       percent={Math.min(
                         Math.round(
-                          ((goal.progress || 0) / (goal.targetAmount || 1)) * 100
+                          ((goal.progress || 0) / (goal.targetAmount || 1)) *
+                            100
                         ),
                         100
                       )}
                     />
                     <p>
                       Time to Achieve:{" "}
-                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)} months
+                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)}{" "}
+                      months
                     </p>
                   </div>
                 ))
@@ -1233,14 +1245,16 @@ const Dashboard = () => {
                 goals.map((goal) => (
                   <div key={goal._id} className="mb-4 p-4 border rounded">
                     <h3 className="font-semibold">{goal.name}</h3>
-                    <p>Target Amount: ${Number(goal.targetAmount).toFixed(2)}</p>
+                    <p>
+                      Target Amount: ${Number(goal.targetAmount).toFixed(2)}
+                    </p>
                     <p>
                       Desired Monthly Payment: $
                       {Number(goal.desiredMonthlyPayment).toFixed(2)}
                     </p>
                     <p>
-                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)} years (
-                      {Number(goal.timePeriod)} months)
+                      Time Period: {Number(goal.timePeriod / 12).toFixed(1)}{" "}
+                      years ({Number(goal.timePeriod)} months)
                     </p>
                     <CustomProgress
                       percent={Math.min(
@@ -1252,7 +1266,8 @@ const Dashboard = () => {
                     />
                     <p>
                       Time Remaining:{" "}
-                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)} months
+                      {Math.max(goal.timePeriod - (goal.monthsElapsed || 0), 0)}{" "}
+                      months
                     </p>
                     <button
                       onClick={() => deleteGoal(goal._id)}
@@ -1273,7 +1288,6 @@ const Dashboard = () => {
         return (
           <>
             <h1 className="text-2xl font-semibold mb-6">View Transactions</h1>
-            {/* Removed the Settings button from here */}
             <div className="bg-white p-6 rounded-lg shadow-md">
               <table className="w-full">
                 <thead>
@@ -1298,7 +1312,9 @@ const Dashboard = () => {
                         </td>
                         <td
                           className={`px-4 py-2 ${
-                            t.type === "income" ? "text-green-500" : "text-red-500"
+                            t.type === "income"
+                              ? "text-green-500"
+                              : "text-red-500"
                           }`}
                         >
                           {t.type.charAt(0).toUpperCase() + t.type.slice(1)}
@@ -1307,7 +1323,9 @@ const Dashboard = () => {
                         <td className="px-4 py-2">{t.description}</td>
                         <td
                           className={`px-4 py-2 text-right ${
-                            t.type === "income" ? "text-green-500" : "text-red-500"
+                            t.type === "income"
+                              ? "text-green-500"
+                              : "text-red-500"
                           }`}
                         >
                           {t.type === "income" ? "+" : "-"}$
@@ -1336,10 +1354,7 @@ const Dashboard = () => {
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan="7"
-                        className="text-center text-gray-500 p-4"
-                      >
+                      <td colSpan="7" className="text-center text-gray-500 p-4">
                         No transactions found.
                       </td>
                     </tr>
@@ -1443,6 +1458,66 @@ const Dashboard = () => {
                 </button>
               </form>
             </div>
+            {/* Subscription Information and PayPal Button */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-semibold mb-4">Subscription Details</h2>
+              <p className="mb-2">
+                <span className="font-semibold">Status:</span>{" "}
+                {subscriptionStatus === "active"
+                  ? "Active"
+                  : subscriptionStatus === "trial"
+                  ? "Trial"
+                  : "Inactive"}
+              </p>
+              {/* Trial Timer */}
+              {subscriptionStatus === "trial" && trialTimeRemaining && (
+                <p className="mb-4">
+                  <span className="font-semibold">Trial Time Remaining:</span>{" "}
+                  {trialTimeRemaining.days}d {trialTimeRemaining.hours}h{" "}
+                  {trialTimeRemaining.minutes}m {trialTimeRemaining.seconds}s
+                </p>
+              )}
+              {/* Next Payment Timer */}
+              {subscriptionStatus === "active" && nextPaymentTimeRemaining && (
+                <p className="mb-4">
+                  <span className="font-semibold">Next Payment In:</span>{" "}
+                  {nextPaymentTimeRemaining.days}d {nextPaymentTimeRemaining.hours}h{" "}
+                  {nextPaymentTimeRemaining.minutes}m {nextPaymentTimeRemaining.seconds}s
+                </p>
+              )}
+              {/* PayPal Buttons for Inactive, Expired, or Trial Subscriptions */}
+              {(subscriptionStatus === "inactive" ||
+                subscriptionStatus === "expired" ||
+                subscriptionStatus === "trial") && (
+                <div>
+                  <p className="mb-4">
+                    {subscriptionStatus === "trial"
+                      ? "Your trial period allows you to use all features for a limited time. Consider subscribing to continue enjoying uninterrupted access."
+                      : "Upgrade your subscription to access all features."}
+                  </p>
+                  {/* Display Error Messages */}
+                  {error && <p className="text-red-500 mb-4">{error}</p>}
+                  {successMessage && (
+                    <p className="text-green-500 mb-4">{successMessage}</p>
+                  )}
+                  {/* PayPal Buttons */}
+                  <PayPalButtons
+                    createOrder={createOrder}
+                    onApprove={onApprove}
+                    onError={onError}
+                  />
+                </div>
+              )}
+              {/* If already active, provide an option to manage subscription */}
+              {subscriptionStatus === "active" && (
+                <div className="mt-4">
+                  <p className="mb-4">
+                    Your subscription is active. Thank you for your support!
+                  </p>
+                  {/* Optionally, add a button to manage subscription */}
+                </div>
+              )}
+            </div>
           </>
         );
 
@@ -1451,26 +1526,137 @@ const Dashboard = () => {
     }
   };
 
-  // Handle Logout
-  const handleLogout = async () => {
+  // PayPal Create Order Function
+  const createOrder = async () => {
     try {
-      const res = await fetch("http://localhost:5001/api/users/logout", {
+      const res = await fetch("http://localhost:5001/api/payments/create-order", {
         method: "POST",
         credentials: "include",
       });
-
-      if (!res.ok) {
-        throw new Error(`Failed to logout: ${res.status}`);
-      }
-
-      // Optionally, you can refresh the authentication status or redirect
-      window.location.href = "/signin"; // Redirect to sign-in page
+      const data = await res.json();
+      return data.id;
     } catch (err) {
-      console.error("Error logging out:", err.message);
-      setError("Failed to logout.");
+      console.error("Error creating PayPal order:", err);
+      setError("Failed to create PayPal order.");
+      return;
+    }
+  };
+
+  // PayPal OnApprove Function
+  const onApprove = async (data) => {
+    try {
+      const res = await fetch("http://localhost:5001/api/payments/capture-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ orderID: data.orderID }),
+      });
+      if (res.ok) {
+        setSubscriptionStatus("active");
+        setSuccessMessage("Subscription activated successfully!");
+        setError(null);
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.msg || "Payment capture failed.");
+      }
+    } catch (err) {
+      console.error("Error capturing PayPal order:", err.message);
+      setError(err.message);
       setSuccessMessage(null);
     }
   };
+
+  // PayPal OnError Function
+  const onError = (err) => {
+    console.error("PayPal Checkout Error:", err);
+    setError("An error occurred during the payment process. Please try again.");
+  };
+
+  // Handle Subscription Timers
+  useEffect(() => {
+    let trialTimer;
+    let paymentTimer;
+
+    if (user && subscriptionStatus === "trial") {
+      if (!user.trialStartDate) {
+        console.error("Trial Start Date is missing for trial subscription.");
+        return;
+      }
+
+      const trialEndDate = new Date(user.trialStartDate);
+      trialEndDate.setDate(trialEndDate.getDate() + 3); // Assuming a 3-day trial
+
+      const updateTrialTimer = () => {
+        const now = new Date();
+        const timeDiff = trialEndDate - now;
+
+        if (timeDiff <= 0) {
+          setSubscriptionStatus("expired");
+          clearInterval(trialTimer);
+          setTrialTimeRemaining(null);
+        } else {
+          const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor(
+            (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (timeDiff % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+          setTrialTimeRemaining({ days, hours, minutes, seconds });
+        }
+      };
+
+      updateTrialTimer();
+      trialTimer = setInterval(updateTrialTimer, 1000);
+    }
+
+    if (user && subscriptionStatus === "active") {
+      // Assuming user has a nextPaymentDate field
+      if (!user.nextPaymentDate) {
+        console.error("Next Payment Date is missing for active subscription.");
+        return;
+      }
+
+      const nextPaymentDate = new Date(user.nextPaymentDate);
+
+      const updatePaymentTimer = () => {
+        const now = new Date();
+        const timeDiff = nextPaymentDate - now;
+
+        if (timeDiff <= 0) {
+          // Handle payment due or automatic renewal
+          // For simplicity, we'll just clear the timer here
+          setNextPaymentTimeRemaining(null);
+          clearInterval(paymentTimer);
+        } else {
+          const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor(
+            (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          );
+          const minutes = Math.floor(
+            (timeDiff % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+          setNextPaymentTimeRemaining({ days, hours, minutes, seconds });
+        }
+      };
+
+      updatePaymentTimer();
+      paymentTimer = setInterval(updatePaymentTimer, 1000);
+    }
+
+    return () => {
+      if (trialTimer) clearInterval(trialTimer);
+      if (paymentTimer) clearInterval(paymentTimer);
+    };
+  }, [user, subscriptionStatus]);
+
+  // Determine if Subscription is Active or Trial
+  const isSubscriptionActive =
+    subscriptionStatus === "active" || subscriptionStatus === "trial";
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -1500,62 +1686,82 @@ const Dashboard = () => {
           </div>
         </div>
         <nav className="mt-8">
+          {/* Dashboard Navigation Button */}
           <button
             onClick={() => setActiveView("dashboard")}
             className={`flex items-center px-4 py-2 w-full text-left ${
               activeView === "dashboard"
                 ? "text-blue-500 bg-blue-100"
                 : "text-gray-700"
-            } hover:bg-gray-200`}
+            } hover:bg-gray-200 ${
+              !isSubscriptionActive ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={!isSubscriptionActive}
           >
             <LayoutDashboard className="mr-4" />
             Dashboard
           </button>
+          {/* Add Income Navigation Button */}
           <button
             onClick={() => setActiveView("income")}
             className={`flex items-center px-4 py-2 w-full text-left ${
               activeView === "income"
                 ? "text-blue-500 bg-blue-100"
                 : "text-gray-700"
-            } hover:bg-gray-200`}
+            } hover:bg-gray-200 ${
+              !isSubscriptionActive ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={!isSubscriptionActive}
           >
             <DollarSign className="mr-4" />
             Add Income
           </button>
+          {/* Add Expenses Navigation Button */}
           <button
             onClick={() => setActiveView("expenses")}
             className={`flex items-center px-4 py-2 w-full text-left ${
               activeView === "expenses"
                 ? "text-blue-500 bg-blue-100"
                 : "text-gray-700"
-            } hover:bg-gray-200`}
+            } hover:bg-gray-200 ${
+              !isSubscriptionActive ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={!isSubscriptionActive}
           >
             <PieChart className="mr-4" />
             Add Expenses
           </button>
+          {/* Add Goal Navigation Button */}
           <button
             onClick={() => setActiveView("goals")}
             className={`flex items-center px-4 py-2 w-full text-left ${
               activeView === "goals"
                 ? "text-blue-500 bg-blue-100"
                 : "text-gray-700"
-            } hover:bg-gray-200`}
+            } hover:bg-gray-200 ${
+              !isSubscriptionActive ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={!isSubscriptionActive}
           >
             <Target className="mr-4" />
             Add Goal
           </button>
+          {/* View Transactions Navigation Button */}
           <button
             onClick={() => setActiveView("transactions")}
             className={`flex items-center px-4 py-2 w-full text-left ${
               activeView === "transactions"
                 ? "text-blue-500 bg-blue-100"
                 : "text-gray-700"
-            } hover:bg-gray-200`}
+            } hover:bg-gray-200 ${
+              !isSubscriptionActive ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={!isSubscriptionActive}
           >
             <FileText className="mr-4" />
             View Transactions
           </button>
-          {/* Settings Button */}
+          {/* Settings Navigation Button (Always Enabled) */}
           <button
             onClick={() => setActiveView("settings")}
             className={`flex items-center px-4 py-2 w-full text-left ${
@@ -1568,6 +1774,7 @@ const Dashboard = () => {
             Settings
           </button>
         </nav>
+        {/* Logout Button */}
         <div className="absolute bottom-4 left-4">
           <button
             onClick={handleLogout}
@@ -1581,11 +1788,75 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-8 overflow-auto">
+        {/* Display User Error */}
         {userError && <p className="text-red-500">{userError}</p>}
-        {userLoading ? (
-          <p>Loading user data...</p>
-        ) : (
+        {/* Removed Debug Info */}
+        {authLoading || isLoadingSubscription ? (
+          // Loading State
+          <div className="flex items-center justify-center h-full">
+            <p className="text-xl">Loading...</p>
+          </div>
+        ) : !isAuthenticated ? (
+          // Access Denied
+          <div className="flex items-center justify-center h-full bg-gray-100">
+            <div className="bg-white p-8 rounded shadow-md text-center">
+              <h2 className="text-2xl font-semibold mb-4">Access Denied</h2>
+              <p className="mb-6">
+                You must be signed in to access the profile dashboard.
+              </p>
+              <a
+                href="/signin"
+                className="text-blue-500 hover:underline font-semibold"
+              >
+                Go to Sign In
+              </a>
+            </div>
+          </div>
+        ) : userLoading ? (
+          // User Data Loading
+          <div className="flex items-center justify-center h-full">
+            <p className="text-xl">Loading user data...</p>
+          </div>
+        ) : subscriptionStatus === "expired" ? (
+          // Subscription Required with PayPal Buttons in Settings
+          <div className="flex items-center justify-center h-full bg-gray-100">
+            <div className="bg-white p-8 rounded shadow-md text-center">
+              <h2 className="text-2xl font-semibold mb-4">
+                Subscription Required
+              </h2>
+              <p className="mb-6">
+                Your trial period has expired. Please subscribe to continue
+                using the dashboard.
+              </p>
+              {/* Display Error Messages */}
+              {error && <p className="text-red-500 mb-4">{error}</p>}
+              {successMessage && (
+                <p className="text-green-500 mb-4">{successMessage}</p>
+              )}
+              {/* PayPal Buttons */}
+              <PayPalButtons
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={onError}
+              />
+            </div>
+          </div>
+        ) : isSubscriptionActive ? (
+          // Render Main Dashboard Views
           renderView()
+        ) : (
+          // Handle Unknown Subscription Status
+          <div className="flex items-center justify-center h-full bg-gray-100">
+            <div className="bg-white p-8 rounded shadow-md text-center">
+              <h2 className="text-2xl font-semibold mb-4">
+                Subscription Status Unknown
+              </h2>
+              <p className="mb-6">
+                We are unable to determine your subscription status. Please
+                contact support.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -1,12 +1,17 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/authContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { DollarSign, PiggyBank, LineChart } from 'lucide-react';
 
 function Navbar() {
   const { isAuthenticated, setIsAuthenticated } = useContext(AuthContext);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Get the current location
+
+  const isAdminPath = location.pathname.startsWith("/admin"); // Check if the current path starts with "/admin"
+
+  if (isAdminPath) return null;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

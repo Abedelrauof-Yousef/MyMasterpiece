@@ -8,7 +8,7 @@ exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if user exists by username or email
+    // Check if user exists
     let existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
       return res.status(400).json({
@@ -21,6 +21,8 @@ exports.register = async (req, res) => {
       username,
       email,
       password,
+      subscriptionStatus: "trial",
+      trialStartDate: Date.now(),
     });
 
     // Hash the password before saving
