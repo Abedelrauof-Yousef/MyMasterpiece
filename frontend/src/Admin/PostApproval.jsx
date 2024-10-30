@@ -1,8 +1,8 @@
 // src/components/PostApproval.js
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Check, X, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Check, X, Trash2 } from "lucide-react";
 
 const PostApproval = () => {
   const [pendingPosts, setPendingPosts] = useState([]);
@@ -13,7 +13,7 @@ const PostApproval = () => {
   const [errorManaged, setErrorManaged] = useState(false);
 
   // Base URL for API
-  const API_BASE_URL = 'http://localhost:5001/api/admin/posts';
+  const API_BASE_URL = "http://localhost:5001/api/admin/posts";
 
   // Fetch pending posts
   const fetchPendingPosts = async () => {
@@ -33,7 +33,9 @@ const PostApproval = () => {
   const fetchManagedPosts = async () => {
     try {
       setLoadingManaged(true);
-      const response = await axios.get(API_BASE_URL);
+      const response = await axios.get(
+        "http://localhost:5001/api/admin/posts/get-managed-posts"
+      );
       setManagedPosts(response.data.data);
       setLoadingManaged(false);
     } catch (err) {
@@ -51,8 +53,13 @@ const PostApproval = () => {
   // Approve a post
   const approvePost = async (id) => {
     try {
-      await axios.put(`${API_BASE_URL}/${id}/approve`);
-      setPendingPosts(pendingPosts.filter(post => post._id !== id));
+      const response = await axios.post(
+        `http://localhost:5001/api/admin/posts/update-approve`,
+        {
+          id,
+        }
+      );
+      setPendingPosts(pendingPosts.filter((post) => post._id !== id));
       fetchManagedPosts();
     } catch (err) {
       console.error("Error approving post:", err);
@@ -63,8 +70,13 @@ const PostApproval = () => {
   // Deny a post
   const denyPost = async (id) => {
     try {
-      await axios.put(`${API_BASE_URL}/${id}/deny`);
-      setPendingPosts(pendingPosts.filter(post => post._id !== id));
+      const response = axios.post(
+        `http://localhost:5001/api/admin/posts/deny-posts`,
+        {
+          id,
+        }
+      );
+      setPendingPosts(pendingPosts.filter((post) => post._id !== id));
       fetchManagedPosts();
     } catch (err) {
       console.error("Error denying post:", err);
@@ -78,7 +90,7 @@ const PostApproval = () => {
 
     try {
       await axios.delete(`${API_BASE_URL}/${id}`);
-      setManagedPosts(managedPosts.filter(post => post._id !== id));
+      setManagedPosts(managedPosts.filter((post) => post._id !== id));
     } catch (err) {
       console.error("Error deleting post:", err);
       alert("Failed to delete post.");
@@ -95,7 +107,9 @@ const PostApproval = () => {
         {loadingPending ? (
           <div className="text-center">Loading pending posts...</div>
         ) : errorPending ? (
-          <div className="text-center text-red-500">Failed to load pending posts.</div>
+          <div className="text-center text-red-500">
+            Failed to load pending posts.
+          </div>
         ) : pendingPosts.length === 0 ? (
           <div className="text-center text-gray-600">No pending posts.</div>
         ) : (
@@ -110,12 +124,19 @@ const PostApproval = () => {
                 </tr>
               </thead>
               <tbody className="text-gray-600 text-sm">
-                {pendingPosts.map(post => (
-                  <tr key={post._id} className="border-b border-gray-200 hover:bg-gray-100">
+                {pendingPosts.map((post) => (
+                  <tr
+                    key={post._id}
+                    className="border-b border-gray-200 hover:bg-gray-100"
+                  >
                     <td className="py-3 px-6 text-left">
                       <div className="flex items-center">
                         {post.user.profilePicture ? (
-                          <img src={post.user.profilePicture} alt={post.user.username} className="w-8 h-8 rounded-full mr-2" />
+                          <img
+                            src={post.user.profilePicture}
+                            alt={post.user.username}
+                            className="w-8 h-8 rounded-full mr-2"
+                          />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-300 mr-2"></div>
                         )}
@@ -168,12 +189,19 @@ const PostApproval = () => {
                 </tr>
               </thead>
               <tbody className="text-gray-600 text-sm">
-                {managedPosts.map(post => (
-                  <tr key={post._id} className="border-b border-gray-200 hover:bg-gray-100">
+                {managedPosts.map((post) => (
+                  <tr
+                    key={post._id}
+                    className="border-b border-gray-200 hover:bg-gray-100"
+                  >
                     <td className="py-3 px-6 text-left">
                       <div className="flex items-center">
                         {post.user.profilePicture ? (
-                          <img src={post.user.profilePicture} alt={post.user.username} className="w-8 h-8 rounded-full mr-2" />
+                          <img
+                            src={post.user.profilePicture}
+                            alt={post.user.username}
+                            className="w-8 h-8 rounded-full mr-2"
+                          />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-300 mr-2"></div>
                         )}
@@ -183,7 +211,7 @@ const PostApproval = () => {
                     <td className="py-3 px-6 text-left">{post.title}</td>
                     <td className="py-3 px-6 text-left">{post.description}</td>
                     <td className="py-3 px-6 text-left">
-                      {post.status === "approved" ? (
+                      {post.isAprroved === true ? (
                         <span className="px-2 py-1 bg-green-200 text-green-800 text-xs font-semibold rounded-full">
                           Approved
                         </span>

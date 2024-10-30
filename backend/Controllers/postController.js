@@ -20,6 +20,7 @@ exports.createPost = async (req, res) => {
       picture,
       title,
       description,
+      isAprroved: false
     });
     await newPost.save();
 
@@ -39,7 +40,7 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
+    const posts = await Post.find({ isAprroved: true }) // Filter by approved status only
       .populate("user", "username avatar") // Populate 'user' field with 'username' and 'avatar'
       .sort({ createdAt: -1 });
     res.json(posts);
@@ -154,9 +155,6 @@ exports.deletePost = async (req, res) => {
   }
 };
 
-
-
-
 // Add a Comment or Reply to a Post
 exports.addComment = async (req, res) => {
   try {
@@ -201,8 +199,13 @@ exports.addComment = async (req, res) => {
 
       // Check if parent is a reply (i.e., it has a parent itself)
       if (parentComment.parent) {
-        console.error("Cannot reply to a reply. Only top-level comments can be replied to.");
-        return res.status(400).json({ message: "Cannot reply to a reply. Only top-level comments can be replied to." });
+        console.error(
+          "Cannot reply to a reply. Only top-level comments can be replied to."
+        );
+        return res.status(400).json({
+          message:
+            "Cannot reply to a reply. Only top-level comments can be replied to.",
+        });
       }
     }
 
@@ -222,7 +225,9 @@ exports.addComment = async (req, res) => {
     res.status(201).json(populatedComment);
   } catch (error) {
     console.error("Error adding comment:", error);
-    res.status(500).json({ message: "Error adding comment", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error adding comment", error: error.message });
   }
 };
 
@@ -255,11 +260,11 @@ exports.getComments = async (req, res) => {
     res.json(commentsWithReplies);
   } catch (error) {
     console.error("Error fetching comments:", error);
-    res.status(500).json({ message: "Error fetching comments", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error fetching comments", error: error.message });
   }
 };
-
-
 
 // Edit Comment
 exports.editComment = async (req, res) => {
@@ -288,13 +293,17 @@ exports.editComment = async (req, res) => {
     // Check if the comment belongs to the specified post
     if (comment.post.toString() !== postId) {
       console.error("Comment does not belong to the specified post.");
-      return res.status(400).json({ message: "Comment does not belong to the specified post." });
+      return res
+        .status(400)
+        .json({ message: "Comment does not belong to the specified post." });
     }
 
     // Check if the user is authorized to edit the comment
     if (comment.user.toString() !== req.user.id) {
       console.error("User not authorized to edit this comment.");
-      return res.status(403).json({ message: "User not authorized to edit this comment." });
+      return res
+        .status(403)
+        .json({ message: "User not authorized to edit this comment." });
     }
 
     // Validate content
@@ -309,12 +318,17 @@ exports.editComment = async (req, res) => {
     await comment.save();
 
     // Populate user field
-    const updatedComment = await Comment.findById(commentId).populate("user", "username avatar");
+    const updatedComment = await Comment.findById(commentId).populate(
+      "user",
+      "username avatar"
+    );
 
     res.json(updatedComment);
   } catch (error) {
     console.error("Error editing comment:", error);
-    res.status(500).json({ message: "Error editing comment", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error editing comment", error: error.message });
   }
 };
 
@@ -344,13 +358,17 @@ exports.deleteComment = async (req, res) => {
     // Check if the comment belongs to the specified post
     if (comment.post.toString() !== postId) {
       console.error("Comment does not belong to the specified post.");
-      return res.status(400).json({ message: "Comment does not belong to the specified post." });
+      return res
+        .status(400)
+        .json({ message: "Comment does not belong to the specified post." });
     }
 
     // Check if the user is authorized to delete the comment
     if (comment.user.toString() !== req.user.id) {
       console.error("User not authorized to delete this comment.");
-      return res.status(403).json({ message: "User not authorized to delete this comment." });
+      return res
+        .status(403)
+        .json({ message: "User not authorized to delete this comment." });
     }
 
     // Delete the comment
@@ -365,6 +383,8 @@ exports.deleteComment = async (req, res) => {
     res.json({ message: "Comment deleted successfully." });
   } catch (error) {
     console.error("Error deleting comment:", error);
-    res.status(500).json({ message: "Error deleting comment", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting comment", error: error.message });
   }
 };

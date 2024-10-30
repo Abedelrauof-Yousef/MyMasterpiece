@@ -38,7 +38,7 @@ function Articles() {
 
   // Add a new post to the state
   const addNewPost = (newPost) => {
-    setPosts([newPost, ...posts]);
+    // setPosts([newPost, ...posts]);
   };
 
   // Delete a post from the state

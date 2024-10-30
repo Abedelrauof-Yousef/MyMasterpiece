@@ -19,10 +19,13 @@ const postSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  status: {
-    type: String,
-    enum: ["pending", "approved", "denied"],
-    default: "pending",
+  // status: {
+  //   type: String,
+  //   enum: ["approved", "denied"],
+  // },
+  isAprroved: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,
@@ -35,7 +38,7 @@ const postSchema = new mongoose.Schema({
 });
 
 // Middleware to update `updatedAt` before saving
-postSchema.pre('save', function(next) {
+postSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
