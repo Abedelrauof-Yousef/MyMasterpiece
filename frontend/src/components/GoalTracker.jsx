@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/authContext";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Sparkles, DollarSign, Calendar, TrendingUp, Target, Award } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  Tooltip,
+  Legend
+} from 'recharts';
+import { 
+  Circle,
+  DollarSign, 
+  Calendar, 
+  AlertCircle,
+  ChevronRight
+} from 'lucide-react';
 
 const GoalTracker = () => {
   const { isAuthenticated } = useContext(AuthContext);
   const [goals, setGoals] = useState([]);
   const [error, setError] = useState(null);
+  const [selectedGoal, setSelectedGoal] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -24,6 +40,7 @@ const GoalTracker = () => {
 
         const data = await res.json();
         setGoals(data);
+        setSelectedGoal(data[0]?._id);
       } catch (err) {
         console.error("Error fetching goals:", err.message);
         setError("Failed to load goals.");
@@ -33,107 +50,241 @@ const GoalTracker = () => {
     fetchGoals();
   }, [isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
-  const chartData = goals.map(goal => ({
+  // Colors matching the "Why Choose Us" section
+  const COLORS = ['#1E88E5', '#42A5F5', '#90CAF9', '#BBDEFB'];
+
+  const pieData = goals.map((goal) => ({
     name: goal.name,
-    progress: (goal.progress ?? 0) / (goal.targetAmount ?? 1) * 100,
-    remaining: 100 - ((goal.progress ?? 0) / (goal.targetAmount ?? 1) * 100)
+    value: goal.targetAmount,
+    progress: (goal.progress / goal.targetAmount) * 100,
   }));
 
+  const selectedGoalData = goals.find((g) => g._id === selectedGoal);
+  const monthlyData = selectedGoalData
+    ? [
+        { month: "Current", amount: selectedGoalData.progress },
+        { month: "Target", amount: selectedGoalData.targetAmount },
+      ]
+    : [];
+
   return (
-    <div className="w-full max-w-7xl mx-auto mt-12 mb-12 p-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl shadow-xl transition-all duration-300 hover:shadow-2xl">
-      <h2 className="text-5xl font-extrabold mb-12 text-indigo-900 flex items-center justify-center">
-        <Target className="mr-4 text-indigo-600" size={48} /> Your Financial Goals
-      </h2>
-      {error && (
-        <div className="mb-8 border border-red-300 bg-red-50 p-4 rounded-lg">
-          <p className="text-red-600">{error}</p>
-        </div>
-      )}
-      {goals.length > 0 ? (
-        <>
-          <div className="mb-12 bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-2xl font-bold text-indigo-800 mb-4">Goal Progress Overview</h3>
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ top: 10, right: 40, left: 30, bottom: 10 }}>
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip 
-                    content={({ payload, label }) => {
-                      if (payload && payload.length) {
-                        return (
-                          <div className="bg-white p-3 rounded shadow-lg">
-                            <p className="font-bold text-indigo-900">{label}</p>
-                            <p className="text-indigo-600">{`Progress: ${payload[0].value.toFixed(2)}%`}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="progress" fill="#4f46e5" stackId="a" radius={[0, 8, 8, 0]} />
-                  <Bar dataKey="remaining" fill="#e0e7ff" stackId="a" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-6 flex items-center bg-red-50 px-4 py-3 rounded-lg">
+            <AlertCircle className="text-red-500 mr-2" size={20} />
+            <p className="text-red-600">{error}</p>
           </div>
-          <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {goals.map((goal) => (
-              <div key={goal._id} className="bg-white p-6 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                <h3 className="text-2xl font-bold text-indigo-900 flex items-center mb-4">
-                  <Award className="mr-2 text-indigo-600" />
-                  {goal.name}
-                </h3>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center">
-                    <DollarSign className="mr-2 text-green-500" size={20} />
-                    <div>
-                      <p className="text-sm text-gray-500">Target</p>
-                      <p className="font-semibold text-gray-900">${(goal.targetAmount ?? 0).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <DollarSign className="mr-2 text-blue-500" size={20} />
-                    <div>
-                      <p className="text-sm text-gray-500">Monthly</p>
-                      <p className="font-semibold text-gray-900">${(goal.desiredMonthlyPayment ?? 0).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="mr-2 text-purple-500" size={20} />
-                    <div>
-                      <p className="text-sm text-gray-500">Timeline</p>
-                      <p className="font-semibold text-gray-900">{((goal.timePeriod ?? 0) / 12).toFixed(1)} years</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <TrendingUp className="mr-2 text-yellow-500" size={20} />
-                    <div>
-                      <p className="text-sm text-gray-500">Progress</p>
-                      <p className="font-semibold text-gray-900">{Math.min(Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100), 100)}%</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full bg-indigo-100 rounded-full h-3">
-                  <div 
-                    className="bg-indigo-600 h-3 rounded-full" 
-                    style={{ width: `${Math.min(Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100), 100)}%` }}
-                  ></div>
+        )}
+
+        {goals.length > 0 ? (
+          <div className="space-y-6">
+            {/* Top Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="text-sm font-medium text-gray-600 mb-4">Total Portfolio Value</h3>
+                <p className="text-3xl font-semibold text-blue-800">
+                  ${goals.reduce((sum, goal) => sum + (goal.targetAmount ?? 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="text-sm font-medium text-gray-600 mb-4">Average Completion</h3>
+                <p className="text-3xl font-semibold text-blue-800">
+                  {Math.round(
+                    goals.reduce(
+                      (sum, goal) =>
+                        sum + ((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100,
+                      0
+                    ) / goals.length
+                  )}
+                  %
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="text-sm font-medium text-gray-600 mb-4">Monthly Investment</h3>
+                <p className="text-3xl font-semibold text-blue-800">
+                  ${goals.reduce((sum, goal) => sum + (goal.desiredMonthlyPayment ?? 0), 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Distribution Chart */}
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-medium text-blue-800 mb-6">Goals Distribution</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ payload }) => {
+                          if (payload && payload.length) {
+                            return (
+                              <div className="bg-white p-3 shadow-lg rounded-lg">
+                                <p className="font-medium text-blue-800">{payload[0].name}</p>
+                                <p className="text-gray-600">${payload[0].value.toLocaleString()}</p>
+                                <p className="text-gray-500">Progress: {payload[0].payload.progress.toFixed(1)}%</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-            ))}
+
+              {/* Progress Chart */}
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-medium text-blue-800 mb-6">Selected Goal Progress</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyData}>
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="#42A5F5"
+                        strokeWidth={2}
+                        dot={{ fill: "#42A5F5", strokeWidth: 2 }}
+                      />
+                      <Tooltip
+                        content={({ payload }) => {
+                          if (payload && payload.length) {
+                            return (
+                              <div className="bg-white p-3 shadow-lg rounded-lg">
+                                <p className="font-medium text-blue-800">{payload[0].payload.month}</p>
+                                <p className="text-gray-600">${payload[0].value.toLocaleString()}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Goals List */}
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="grid divide-y divide-gray-200">
+                {goals.map((goal, index) => (
+                  <div
+                    key={goal._id}
+                    className={`p-6 cursor-pointer transition-colors ${
+                      selectedGoal === goal._id ? "bg-gray-50" : "hover:bg-gray-50"
+                    }`}
+                    onClick={() => setSelectedGoal(goal._id)}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <Circle
+                          className="fill-current"
+                          size={12}
+                          color={COLORS[index % COLORS.length]}
+                        />
+                        <h4 className="text-lg font-medium text-blue-800">{goal.name}</h4>
+                      </div>
+                      <ChevronRight
+                        size={20}
+                        className={`text-gray-400 transition-transform ${
+                          selectedGoal === goal._id ? "rotate-90" : ""
+                        }`}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                      <div className="flex items-center space-x-3">
+                        <DollarSign className="text-gray-400" size={18} />
+                        <div>
+                          <p className="text-sm text-gray-500">Target Amount</p>
+                          <p className="font-medium text-blue-800">
+                            ${(goal.targetAmount ?? 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Calendar className="text-gray-400" size={18} />
+                        <div>
+                          <p className="text-sm text-gray-500">Timeline</p>
+                          <p className="font-medium text-blue-800">
+                            {((goal.timePeriod ?? 0) / 12).toFixed(1)} years
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <DollarSign className="text-gray-400" size={18} />
+                        <div>
+                          <p className="text-sm text-gray-500">Monthly Payment</p>
+                          <p className="font-medium text-blue-800">
+                            ${(goal.desiredMonthlyPayment ?? 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative pt-1">
+                      <div className="flex mb-2 items-center justify-between">
+                        <div>
+                          <span className="text-xs font-semibold inline-block py-1 px-2 rounded-full bg-blue-100 text-blue-600">
+                            Progress
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-semibold inline-block text-blue-600">
+                            {Math.min(
+                              Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100),
+                              100
+                            )}
+                            %
+                          </span>
+                        </div>
+                      </div>
+                      <div className="overflow-hidden h-2 text-xs flex rounded bg-blue-100">
+                        <div
+                          style={{
+                            width: `${Math.min(
+                              Math.round(((goal.progress ?? 0) / (goal.targetAmount ?? 1)) * 100),
+                              100
+                            )}%`,
+                          }}
+                          className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </>
-      ) : (
-        <div className="bg-white p-12 rounded-lg shadow-md flex flex-col items-center justify-center">
-          <Sparkles className="text-indigo-500 mb-4" size={48} />
-          <p className="text-xl text-gray-700 text-center">You have no goals yet. Start setting some financial targets!</p>
-        </div>
-      )}
+        ) : (
+          <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+            <p className="text-blue-800 mb-4">No financial goals have been set yet.</p>
+            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+              Create Your First Goal
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

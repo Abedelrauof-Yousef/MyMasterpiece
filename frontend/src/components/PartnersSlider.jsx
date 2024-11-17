@@ -1,3 +1,5 @@
+// src/components/PartnersSlider.jsx
+
 import React from 'react';
 
 // Sample logos (replace these paths with the actual paths to your logos)
@@ -12,24 +14,25 @@ function PartnersSlider() {
   const logos = [partner1, partner2, partner3, partner4, partner5, partner6];
 
   return (
-    <section className="py-16 bg-gray-50">
-      {/* Styled Our Partners heading */}
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-semibold text-gray-800 mb-3">
+    <section className="py-12 bg-gray-50">
+      {/* Styled "Our Partners" heading */}
+      <div className="text-center mb-8">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-800 mb-3">
           Our Partners
-          <span className="block h-1 w-24 bg-blue-500 mx-auto mt-4"></span>
         </h2>
+        <div className="w-12 sm:w-16 h-1 bg-blue-500 mx-auto"></div>
       </div>
       
+      {/* Slider Container */}
       <div className="overflow-hidden">
-        <div className="flex items-center space-x-6 animate-scroll">
+        <div className="flex items-center space-x-6 animate-scroll sm:animate-scrollFast lg:animate-scrollSlow">
           {/* Duplicate the logos for infinite scrolling */}
           {logos.concat(logos).map((logo, index) => (
-            <div key={index} className="flex-none w-48 h-auto px-4">
+            <div key={index} className="flex-none w-24 sm:w-32 lg:w-48 h-auto px-2 sm:px-4">
               <img
                 src={logo}
                 alt={`Partner ${index % logos.length + 1}`}
-                className="object-contain hover:scale-110 transition-transform duration-300"
+                className="object-contain w-full h-full hover:scale-110 transition-transform duration-300"
               />
             </div>
           ))}

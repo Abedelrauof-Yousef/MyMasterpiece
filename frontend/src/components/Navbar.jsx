@@ -1,11 +1,12 @@
 import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/authContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { DollarSign, PiggyBank, LineChart } from 'lucide-react';
+import { DollarSign, PiggyBank, LineChart, Menu, X } from 'lucide-react';
 
 function Navbar() {
   const { isAuthenticated, setIsAuthenticated } = useContext(AuthContext);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // New state for mobile menu
   const navigate = useNavigate();
   const location = useLocation(); // Get the current location
 
@@ -72,6 +73,7 @@ function Navbar() {
       <nav className="bg-gray-800 text-white fixed top-0 left-0 right-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo */}
             <div className="flex-shrink-0">
               <Link
                 to="/"
@@ -80,6 +82,7 @@ function Navbar() {
                 BudgetWiseHub
               </Link>
             </div>
+            {/* Desktop Menu */}
             <div className="hidden md:block">
               <div className="ml-10 flex items-center space-x-4">
                 <NavLink to="/">Home</NavLink>
@@ -111,8 +114,56 @@ function Navbar() {
                 )}
               </div>
             </div>
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-gray-400 hover:text-white focus:outline-none focus:text-white"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-gray-800">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <NavLinkMobile to="/">Home</NavLinkMobile>
+
+              {isAuthenticated && (
+                <>
+                  <NavLinkMobile to="/dashboard">Financial Dashboard</NavLinkMobile>
+                  <NavLinkMobile to="/articles">Articles</NavLinkMobile>
+                </>
+              )}
+
+              <NavLinkMobile to="/about">About Us</NavLinkMobile>
+              <NavLinkMobile to="/contact">Contact Us</NavLinkMobile>
+
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-red-600 hover:bg-red-700 transition duration-300"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <NavLinkMobile to="/signin">Sign In</NavLinkMobile>
+                  <NavLinkMobile to="/signup" className="bg-indigo-600 hover:bg-indigo-700">
+                    Sign Up
+                  </NavLinkMobile>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
     </>
   );
@@ -122,6 +173,15 @@ const NavLink = ({ to, children, className = '' }) => (
   <Link
     to={to}
     className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition duration-300 ${className}`}
+  >
+    {children}
+  </Link>
+);
+
+const NavLinkMobile = ({ to, children, className = '' }) => (
+  <Link
+    to={to}
+    className={`block px-3 py-2 rounded-md text-base font-medium text-white hover:bg-gray-700 transition duration-300 ${className}`}
   >
     {children}
   </Link>

@@ -1,3 +1,5 @@
+// src/components/AboutBudgetWiseHub.jsx
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -34,14 +36,14 @@ function AboutBudgetWiseHub() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl font-semibold text-gray-800 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-semibold text-gray-800 mb-4">
             About <span className="text-blue-600">BudgetWiseHub</span>
           </h2>
-          <div className="w-20 h-1 bg-blue-500 mx-auto"></div>
+          <div className="w-16 h-1 bg-blue-500 mx-auto"></div>
         </motion.div>
 
         {/* Main Content */}
-        <div className="lg:flex lg:items-center lg:justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
           {/* Textual Content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -50,15 +52,15 @@ function AboutBudgetWiseHub() {
             viewport={{ once: true }}
             className="lg:w-1/2 lg:pr-12"
           >
-            <p className="text-lg text-gray-700 mb-6">
+            <p className="text-lg sm:text-xl text-gray-700 mb-6">
               Welcome to <span className="font-semibold text-blue-600">BudgetWiseHub</span>, your ultimate companion for mastering personal finance. Our mission is to empower individuals to take control of their financial future through intuitive budgeting, comprehensive expense tracking, and achievable goal setting.
             </p>
-            <p className="text-lg text-gray-700 mb-6">
+            <p className="text-lg sm:text-xl text-gray-700 mb-6">
               Whether you're saving for a dream vacation, planning for retirement, or simply aiming to manage your daily expenses more effectively, BudgetWiseHub provides the tools and support you need to succeed.
             </p>
             <Link
               to="/about"
-              className="inline-flex items-center px-6 py-3 border border-blue-600 text-blue-600 bg-transparent rounded-full text-lg font-medium hover:bg-blue-600 hover:text-white transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-5 py-3 border border-blue-600 text-blue-600 bg-transparent rounded-full text-lg font-medium hover:bg-blue-600 hover:text-white transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Read More
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
@@ -98,7 +100,7 @@ function AboutBudgetWiseHub() {
 
         {/* Features Section */}
         <motion.div
-          className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
@@ -122,7 +124,7 @@ function AboutBudgetWiseHub() {
             >
               <div className="flex flex-col items-center">
                 {feature.icon}
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-center">{feature.title}</h3>
                 <p className="text-gray-600 text-center">{feature.description}</p>
               </div>
             </motion.div>

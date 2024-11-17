@@ -1,301 +1,306 @@
-import React from 'react';
-import { ArrowRightIcon, BarChartIcon, ShieldIcon, UsersIcon, DollarSignIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { FaQuoteLeft, FaQuoteRight } from 'react-icons/fa';
-import Footer from '../components/Footer'; // Ensure this path is correct
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { BarChartIcon, ShieldIcon, UsersIcon, DollarSignIcon, DollarSign, LineChart, PiggyBank, Milestone, Trophy } from 'lucide-react';
+import ReactStars from 'react-rating-stars-component';
+import Slider from 'react-slick';
+import Footer from '../components/Footer';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 const AboutUs = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [contentVisible, setContentVisible] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
+  const [errorFeedbacks, setErrorFeedbacks] = useState(null);
+
   const coreValues = [
-    { name: 'Innovation', icon: BarChartIcon, description: 'Pioneering solutions for financial growth.' },
-    { name: 'Integrity', icon: ShieldIcon, description: 'Upholding the highest ethical standards.' },
-    { name: 'Empowerment', icon: UsersIcon, description: 'Enabling financial success for all.' },
-    { name: 'Excellence', icon: DollarSignIcon, description: 'Delivering superior financial outcomes.' },
-  ];
-
-  const leadershipTeam = [
-    { name: "Abedel Ra'uof", role: "CEO & Co-founder", image: "/api/placeholder/400/400" },
-    { name: "Jane Smith", role: "CTO & Co-founder", image: "/api/placeholder/400/400" },
-    { name: "John Doe", role: "Chief Financial Strategist", image: "/api/placeholder/400/400" },
-  ];
-
-  const testimonials = [
-    {
-      name: "Emily Johnson",
-      feedback: "BudgetWizeHub transformed the way I manage my finances. Highly recommend!",
-      avatar: "/api/placeholder/100/100",
+    { 
+      name: 'Innovation', 
+      icon: BarChartIcon, 
+      description: 'We constantly explore new ideas to simplify personal finance.' 
     },
-    {
-      name: "Michael Brown",
-      feedback: "The tools and support provided are exceptional. My financial health has never been better.",
-      avatar: "/api/placeholder/100/100",
+    { 
+      name: 'Transparency', 
+      icon: ShieldIcon, 
+      description: 'We ensure clarity in every financial decision.' 
+    },
+    { 
+      name: 'Empowerment', 
+      icon: UsersIcon, 
+      description: 'We provide tools to help you take control of your finances.' 
+    },
+    { 
+      name: 'Excellence', 
+      icon: DollarSignIcon, 
+      description: 'We deliver exceptional solutions tailored to your needs.' 
     },
   ];
 
-  return (
-    <div className="bg-gray-200 text-gray-800">
-      
+  const companyMilestones = [
+    {
+      year: 'August',
+      title: 'The Vision',
+      description: 'The idea of BudgetWizeHub was born, aiming to revolutionize personal finance management through innovative technology.',
+      icon: Milestone,
+    },
+    {
+      year: 'September',
+      title: 'Development Begins',
+      description: 'Our dedicated team started working on transforming the vision into reality, laying the foundation for our platform.',
+      icon: Trophy,
+    },
+    {
+      year: 'October',
+      title: 'Platform Ready',
+      description: 'After months of development and testing, our comprehensive financial management platform was completed.',
+      icon: UsersIcon,
+    },
+    {
+      year: 'November',
+      title: 'Official Launch',
+      description: 'BudgetWizeHub officially launched, bringing smart financial management tools to users worldwide.',
+      icon: BarChartIcon,
+    },
+  ];
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsLoading(false);
+      setTimeout(() => {
+        setContentVisible(true);
+        setTimeout(() => {
+          setImageLoaded(true);
+        }, 500);
+      }, 200);
+    }, 800);
+
+    // Fetch feedbacks with 4 stars and above
+    const fetchFeedbacks = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/api/feedback');
+        const filteredFeedbacks = res.data.filter(fb => fb.rating >= 4);
+        setFeedbacks(filteredFeedbacks);
+        setErrorFeedbacks(null);
+      } catch (err) {
+        console.error('Error fetching feedback:', err);
+        setErrorFeedbacks('Failed to load feedback. Please try again later.');
+      } finally {
+        setLoadingFeedbacks(false);
+      }
+    };
+    fetchFeedbacks();
+  }, []);
+
+  const loadingContent = (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col items-center justify-center">
+      <div className="relative w-32 h-32 mb-8">
+        <div className="absolute inset-0 border-4 border-t-blue-400 border-r-blue-300 border-b-blue-200 border-l-blue-500 rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <DollarSign className="w-12 h-12 text-blue-400 animate-pulse" />
+        </div>
+      </div>
+      <div className="relative w-48 h-12">
+        <div className="absolute left-0 animate-bounce">
+          <PiggyBank className="w-8 h-8 text-blue-300" />
+        </div>
+        <div className="absolute right-0 animate-bounce delay-150">
+          <LineChart className="w-8 h-8 text-blue-300" />
+        </div>
+      </div>
+      <div className="mt-8 text-center">
+        <h2 className="text-2xl font-semibold text-white mb-2">
+          Welcome to BudgetWizeHub
+        </h2>
+        <p className="text-gray-300 animate-pulse">
+          Loading our story...
+        </p>
+      </div>
+    </div>
+  );
+
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 3, // Adjust as needed
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 5000,
+    arrows: false,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+        }
+      },
+      {
+        breakpoint: 600,
+        settings: {
+          slidesToShow: 1,
+        }
+      }
+    ]
+  };
+
+  const mainContent = (
+    <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <header className="relative h-screen flex items-center justify-center overflow-hidden">
-        <motion.div
-          className="absolute inset-0 z-0"
-          initial={{ opacity: 0, scale: 1.1 }} // Start with opacity 0 and slightly zoomed in
-          animate={{ opacity: 1, scale: 1 }} // Animate to full opacity and normal scale
-          transition={{ duration: 1.5 }} // Set duration for the animation
-        >
-          <img
-            src="/api/placeholder/1920/1080"
-            alt="Finance background"
-            className="w-full h-full object-cover object-center"
-          />
-        </motion.div>
-        <div className="relative z-10 text-center px-4">
-          <motion.h1
-            className="text-5xl md:text-7xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-          >
-            Redefining Financial Management
-          </motion.h1>
-          <motion.p
-            className="text-xl md:text-2xl mb-8 text-gray-300"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.5 }}
-          >
-            BudgetWizeHub: Your partner in achieving financial excellence
-          </motion.p>
-          <motion.a
-            href="#"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 transition duration-300 ease-in-out"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 1 }}
-          >
-            Get Started
-            <ArrowRightIcon className="ml-2 h-5 w-5" />
-          </motion.a>
+      <div className="relative bg-gradient-to-b from-gray-900 to-gray-800 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <div className={`w-full h-full transition-transform duration-1000 ${imageLoaded ? 'scale-100 opacity-30' : 'scale-110 opacity-0'}`}>
+            <img 
+              src="/api/placeholder/1920/1080" 
+              alt="Financial Dashboard" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/80 to-gray-800/80"></div>
         </div>
-      </header>
+        
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center">
+          <h1 className="text-4xl md:text-5xl font-light mb-6 text-white">
+            About <span className="font-semibold text-blue-400">BudgetWizeHub</span>
+          </h1>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full mb-8"></div>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            We blend cutting-edge technology with deep financial expertise to empower individuals and businesses to make informed decisions and achieve their financial aspirations.
+          </p>
+        </div>
+      </div>
 
-      {/* Mission Section */}
+      {/* Core Values Section */}
       <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            className="text-4xl font-bold mb-8 text-center text-gray-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            Our Mission
-          </motion.h2>
-          <motion.p
-            className="text-xl text-center text-gray-600 max-w-3xl mx-auto"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            At BudgetWizeHub, we're on a relentless pursuit to democratize financial intelligence. We blend cutting-edge technology with deep financial expertise to empower individuals and businesses to make informed decisions, optimize their resources, and achieve their financial aspirations.
-          </motion.p>
-        </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="py-20 bg-gray-200">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            className="text-4xl font-bold mb-12 text-center text-gray-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            Core Values
-          </motion.h2>
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.2,
-                },
-              },
-              hidden: {},
-            }}
-          >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-light text-gray-900 text-center mb-4">
+            Our Core <span className="font-semibold text-blue-600">Values</span>
+          </h2>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full mb-12"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {coreValues.map((value, index) => (
-              <motion.div
-                key={index}
-                className="bg-white p-6 rounded-lg shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-              >
-                <value.icon className="h-12 w-12 text-blue-400 mb-4" />
+              <div key={index} className="bg-gray-50 p-6 rounded-xl shadow-lg">
+                <value.icon className="h-12 w-12 text-blue-500 mb-4" />
                 <h3 className="text-xl font-semibold mb-2 text-gray-800">{value.name}</h3>
                 <p className="text-gray-600">{value.description}</p>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Approach Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            className="text-4xl font-bold mb-12 text-center text-gray-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            Our Approach
-          </motion.h2>
-          <motion.div
-            className="flex flex-col lg:flex-row items-center gap-12"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            <div className="lg:w-1/2">
-              <p className="text-xl text-gray-600 mb-6">
-                We believe that financial management should be accessible, intuitive, and tailored to individual needs. Our platform leverages advanced algorithms and machine learning to provide personalized insights and recommendations, ensuring that every user receives a bespoke experience designed to maximize their financial potential.
-              </p>
-              <p className="text-xl text-gray-600">
-                By continuously evolving and integrating user feedback, we strive to offer tools that not only simplify budgeting but also inspire proactive financial planning and smart investment strategies.
-              </p>
+      {/* Customer Stories Section */}
+      <section className="py-20 bg-gradient-to-b from-gray-900 to-gray-800">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-light text-center mb-4 text-white">
+            Hear from Our <span className="font-semibold text-blue-400">Customers</span>
+          </h2>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full mb-12"></div>
+          {loadingFeedbacks ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
             </div>
-            <div className="lg:w-1/2">
-              <motion.img
-                src="/api/placeholder/800/600"
-                alt="FinanceWise Dashboard"
-                className="rounded-lg shadow-2xl"
-                initial={{ scale: 0.9, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                viewport={{ once: true }}
-              />
+          ) : errorFeedbacks ? (
+            <div className="bg-red-900/50 border-l-4 border-red-500 text-red-200 p-4 rounded">
+              {errorFeedbacks}
             </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-20 bg-gray-200">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            className="text-4xl font-bold mb-12 text-center text-gray-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            Leadership Team
-          </motion.h2>
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.2,
-                },
-              },
-              hidden: {},
-            }}
-          >
-            {leadershipTeam.map((member, index) => (
-              <motion.div
-                key={index}
-                className="bg-white rounded-lg overflow-hidden shadow-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-              >
-                <img
-                  src={member.image}
-                  alt={member.name}
-                  className="w-full h-64 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-1 text-gray-800">{member.name}</h3>
-                  <p className="text-blue-400">{member.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            className="text-4xl font-bold mb-12 text-center text-gray-800"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-          >
-            What Our Clients Say
-          </motion.h2>
-          <motion.div
-            className="flex flex-col md:flex-row items-center justify-center gap-8"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{
-              visible: {
-                transition: {
-                  staggerChildren: 0.2,
-                },
-              },
-              hidden: {},
-            }}
-          >
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                className="bg-gray-100 p-6 rounded-lg shadow-lg max-w-md text-center transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-xl"
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-              >
-                <FaQuoteLeft className="text-blue-400 text-3xl mb-4" />
-                <p className="text-gray-600 mb-4">"{testimonial.feedback}"</p>
-                <div className="flex items-center justify-center">
-                  <img
-                    src={testimonial.avatar}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">{testimonial.name}</h4>
+          ) : feedbacks.length > 0 ? (
+            <Slider {...sliderSettings}>
+              {feedbacks.map((fb) => (
+                <div key={fb._id} className="px-2">
+                  <div className="bg-gray-800/50 rounded-xl p-6 shadow-lg flex flex-col items-center">
+                    <h3 className="text-xl font-semibold text-white mb-2 text-center">{fb.user?.username || 'Anonymous'}</h3>
+                    <div className="flex justify-center mt-2 mb-4">
+                      <ReactStars
+                        count={5}
+                        value={fb.rating}
+                        edit={false}
+                        size={20}
+                        activeColor="#ffd700"
+                      />
+                    </div>
+                    <p className="text-gray-400 italic text-center">"{fb.comment}"</p>
                   </div>
                 </div>
-                <FaQuoteRight className="text-blue-400 text-3xl mt-4" />
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </Slider>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No customer feedback yet. Check back later!</p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Add Footer here */}
+      {/* Company Journey Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-light text-center mb-4 text-gray-900">
+            Our <span className="font-semibold text-blue-600">Journey</span>
+          </h2>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full mb-12"></div>
+          
+          {/* Timeline container */}
+          <div className="relative">
+            {/* Timeline line - hidden on mobile, visible on md and up */}
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-blue-200"></div>
+            
+            {/* Timeline content */}
+            <div className="space-y-8 md:space-y-24">
+              {companyMilestones.map((milestone, index) => (
+                <div key={index} className="relative">
+                  {/* Mobile layout (stacked) */}
+                  <div className="md:hidden flex flex-col items-center">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg mb-4">
+                      <milestone.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <span className="text-blue-600 font-medium mb-4">{milestone.year}</span>
+                    <div className="w-full bg-gray-50 p-6 rounded-xl shadow-lg">
+                      <h3 className="text-xl font-semibold text-blue-600 mb-2">{milestone.title}</h3>
+                      <p className="text-gray-600">{milestone.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Desktop layout */}
+                  <div className="hidden md:grid md:grid-cols-5 items-center">
+                    {/* Left content */}
+                    <div className={`col-span-2 ${index % 2 === 0 ? 'pr-12' : 'opacity-0'}`}>
+                      <div className={`bg-gray-50 p-6 rounded-xl shadow-lg ${index % 2 === 0 ? '' : 'invisible'}`}>
+                        <h3 className="text-xl font-semibold text-blue-600 mb-2">{milestone.title}</h3>
+                        <p className="text-gray-600">{milestone.description}</p>
+                      </div>
+                    </div>
+
+                    {/* Center icon and date */}
+                    <div className="col-span-1 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-lg mb-2">
+                        <milestone.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-blue-600 font-medium">{milestone.year}</span>
+                    </div>
+
+                    {/* Right content */}
+                    <div className={`col-span-2 ${index % 2 === 1 ? 'pl-12' : 'opacity-0'}`}>
+                      <div className={`bg-gray-50 p-6 rounded-xl shadow-lg ${index % 2 === 1 ? '' : 'invisible'}`}>
+                        <h3 className="text-xl font-semibold text-blue-600 mb-2">{milestone.title}</h3>
+                        <p className="text-gray-600">{milestone.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
       <Footer />
     </div>
   );
+
+  return isLoading ? loadingContent : mainContent;
 };
 
 export default AboutUs;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify"; // Import toast
 
 function CreatePost({ currentUser, onPostCreated }) {
   const [title, setTitle] = useState("");
@@ -42,6 +43,22 @@ function CreatePost({ currentUser, onPostCreated }) {
         },
       });
 
+      // Success notification
+      toast.success("Post created successfully!", {
+        position: "top-center",
+        autoClose: 3000,
+      });
+
+      // Admin approval notification
+      toast.info("Your post has been submitted and is pending admin approval.", {
+        position: "top-center",
+        autoClose: 5000,
+        style: {
+          backgroundColor: '#3B82F6',
+          color: 'white',
+        }
+      });
+
       onPostCreated(res.data);
       setTitle("");
       setDescription("");
@@ -52,6 +69,12 @@ function CreatePost({ currentUser, onPostCreated }) {
     } catch (error) {
       console.error("Error creating post:", error);
       setError("Failed to create post. Please try again.");
+      
+      // Error notification
+      toast.error("Failed to create post. Please try again.", {
+        position: "top-center",
+        autoClose: 5000,
+      });
     } finally {
       setIsPosting(false);
     }

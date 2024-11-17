@@ -6,8 +6,7 @@ require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const path = require("path"); // Import path module
 
-
-require('./Sheduler/recurringTransactions')
+require("./Sheduler/recurringTransactions");
 
 app.use(
   cors({
@@ -22,12 +21,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Serve static files from 'uploads' directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // MongoDB setup
 const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGODB_URI;
-
 
 // Mongoose connection without deprecated options
 mongoose
@@ -35,16 +33,19 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB:", err));
 
-
-  
 app.use("/api/users", require("./Routes/userRoutes"));
 app.use("/api", require("./Routes/contactRoutes"));
 app.use("/api/posts", require("./Routes/postRoutes"));
 
+
+// User Dashboard
 app.use("/api/transactions", require("./Routes/transactionRoutes"));
 app.use("/api/goals", require("./Routes/goalRoutes"));
 app.use("/api/payments", require("./Routes/paymentRoutes"));
 
+
+// feedback
+app.use("/api/feedback", require("./Routes/feedbackRoutes"));
 
 // Admin Routes
 app.use("/api/admin/users", require("./Routes/adminUserRoutes"));
