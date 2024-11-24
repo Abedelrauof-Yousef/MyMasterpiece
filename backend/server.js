@@ -51,5 +51,10 @@ app.use("/api/feedback", require("./Routes/feedbackRoutes"));
 app.use("/api/admin/users", require("./Routes/adminUserRoutes"));
 app.use("/api/admin/posts", require("./Routes/adminPostRoutes"));
 app.use("/api/admin/contact", require("./Routes/adminContactRoutes"));
+app.use("/api/admin/login", require("./Routes/AdminLoginRoutes"));
+
+
+
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,4 +1,5 @@
-// Articles.jsx
+// src/components/Articles.jsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
@@ -53,14 +54,17 @@ function Articles() {
 
   if (loading)
     return (
-      <div className="flex justify-center items-center h-screen text-xl font-semibold">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="flex justify-center items-center h-screen bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
       </div>
     );
   if (error)
     return (
-      <div className="flex justify-center items-center h-screen text-xl text-red-600">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+      <div className="flex justify-center items-center h-screen bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
           <strong className="font-bold">Error!</strong>
           <span className="block sm:inline"> {error}</span>
         </div>
@@ -68,62 +72,84 @@ function Articles() {
     );
 
   return (
-    <div className="container mx-auto px-4 py-8 mt-16">
-      <Routes>
-        {/* Main posts listing */}
-        <Route
-          path=""
-          element={
-            <>
-              <h1 className="text-4xl font-bold mb-8 text-center text-gray-800">Blog Posts</h1>
-              
-              <div className="max-w-2xl mx-auto mb-12">
-                <CreatePost currentUser={currentUser} onPostCreated={addNewPost} />
-              </div>
+    <div className="min-h-screen bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 py-16">
+      <div className="container mx-auto px-4">
+        <Routes>
+          {/* Main posts listing */}
+          <Route
+            path=""
+            element={
+              <>
+                {/* Header */}
+                <h1 className="text-5xl font-extrabold mb-6 text-center text-gray-800">
+                  Latest Articles
+                </h1>
+                <hr className="w-24 mx-auto border-t-4 border-blue-500 mb-12" />
 
-              {posts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {posts.map((post) => (
-                    <PostCard
-                      key={post._id}
-                      post={post}
-                      currentUser={currentUser}
-                      onDelete={deletePost}
-                      onUpdate={updatePost}
-                    />
-                  ))}
+                {/* Create Post Form */}
+                <div className="max-w-2xl mx-auto mb-12">
+                  <CreatePost currentUser={currentUser} onPostCreated={addNewPost} />
                 </div>
-              ) : (
-                <div className="text-center text-gray-600 text-lg mt-12 bg-gray-100 p-8 rounded-lg shadow-inner">
-                  <p>No posts available.</p>
-                  <p className="mt-2">Be the first to share your thoughts!</p>
-                </div>
-              )}
-            </>
-          }
-        />
 
-        {/* Create Post Route */}
-        <Route
-          path="create-post"
-          element={<CreatePost currentUser={currentUser} onPostCreated={addNewPost} />}
-        />
+                {/* Posts Grid */}
+                {posts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {posts.map((post) => (
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        currentUser={currentUser}
+                        onDelete={deletePost}
+                        onUpdate={updatePost}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  /* No Posts Available Message */
+                  <div className="text-center text-gray-600 text-lg mt-12 bg-white p-8 rounded-lg shadow-inner">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    <p>No articles available.</p>
+                    <p className="mt-2">Be the first to share your insights!</p>
+                  </div>
+                )}
+              </>
+            }
+          />
 
-        {/* Edit Post Route */}
-        <Route
-          path="edit-post/:id"
-          element={<EditPost onUpdate={updatePost} />}
-        />
+          {/* Create Post Route */}
+          <Route
+            path="create-post"
+            element={<CreatePost currentUser={currentUser} onPostCreated={addNewPost} />}
+          />
 
-        {/* View Post Route */}
-        <Route
-          path="view-post/:id"
-          element={<ViewPost currentUser={currentUser} />}
-        />
+          {/* Edit Post Route */}
+          <Route
+            path="edit-post/:id"
+            element={<EditPost onUpdate={updatePost} />}
+          />
 
-        {/* Redirect any unknown routes within Articles to the main posts listing */}
-        <Route path="*" element={<Navigate to="/articles" replace />} />
-      </Routes>
+          {/* View Post Route */}
+          <Route
+            path="view-post/:id"
+            element={<ViewPost currentUser={currentUser} />}
+          />
+
+          {/* Redirect any unknown routes within Articles to the main posts listing */}
+          <Route path="*" element={<Navigate to="/articles" replace />} />
+        </Routes>
+      </div>
     </div>
   );
 }

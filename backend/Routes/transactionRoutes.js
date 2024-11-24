@@ -4,14 +4,10 @@ const { getTransactions, addTransaction, deleteTransaction } = require('../Contr
 const auth = require('../Middleware/userAuth'); // This will be the middleware for JWT verification
 const subscriptionCheck = require("../Middleware/subscriptionCheck");
 
-// @route   GET /api/transactions
-// @desc    Get all transactions for the logged-in user
-// @access  Private
+
 router.get('/', auth, subscriptionCheck, getTransactions);
 
-// @route   POST /api/transactions
-// @desc    Add a new transaction
-// @access  Private
+
 router.post('/', auth, subscriptionCheck, addTransaction);
 
 

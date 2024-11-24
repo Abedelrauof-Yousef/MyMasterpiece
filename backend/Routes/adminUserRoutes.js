@@ -17,4 +17,5 @@ router.put("/:id/activate", activateUser);
 // PUT /api/users/:id/deactivate - Deactivate a user
 router.put("/:id/deactivate", deactivateUser);
 
+
 module.exports = router;

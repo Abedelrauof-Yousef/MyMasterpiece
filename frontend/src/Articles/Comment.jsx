@@ -1,12 +1,29 @@
 // src/components/Comment.jsx
-import React, { useState } from "react";
+
+import React, { useState, useRef, useEffect } from "react";
 import ReplyForm from "./ReplyForm";
-import EditCommentForm from "./EditCommentForm"; // New component
+import EditCommentForm from "./EditCommentForm"; // Ensure this component is created
 import axios from "axios";
+import { MoreVertical } from "lucide-react"; // Import MoreVertical icon
 
 function Comment({ comment, currentUser, addReply, refreshComments }) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleReply = async (replyContent) => {
     await addReply(comment._id, replyContent);
@@ -44,7 +61,7 @@ function Comment({ comment, currentUser, addReply, refreshComments }) {
   };
 
   return (
-    <li className="flex flex-col">
+    <div className="flex flex-col">
       <div className="flex">
         {comment.user.avatar ? (
           <img
@@ -59,10 +76,19 @@ function Comment({ comment, currentUser, addReply, refreshComments }) {
               : "U"}
           </div>
         )}
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-800">{comment.user.username || "User"}</p>
+        <div className="flex-1 relative">
+          {/* Username and Date/Time */}
+          <p className="text-sm font-semibold text-gray-800 group">
+            {comment.user.username || "User"}
+            <span className="ml-2 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {comment.createdAt
+                ? new Date(comment.createdAt).toLocaleString()
+                : "Unknown time"}
+            </span>
+          </p>
+          {/* Comment Content or Edit Form */}
           {!editing ? (
-            <p className="text-gray-700">{comment.content}</p>
+            <p className="text-gray-700 mt-1">{comment.content}</p>
           ) : (
             <EditCommentForm
               initialContent={comment.content}
@@ -70,50 +96,65 @@ function Comment({ comment, currentUser, addReply, refreshComments }) {
               onSave={handleEdit}
             />
           )}
-          <p className="text-xs text-gray-500">
-            {comment.createdAt
-              ? new Date(comment.createdAt).toLocaleString()
-              : "Unknown time"}
-          </p>
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="ml-14 mt-2 flex space-x-2">
-        {currentUser && comment.user._id === currentUser._id && !editing && (
-          <>
-            <button
-              onClick={() => setEditing(true)}
-              className="text-blue-500 hover:text-blue-700 text-sm"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="text-red-500 hover:text-red-700 text-sm"
-            >
-              Delete
-            </button>
-          </>
-        )}
-        {currentUser && !editing && (
+        {/* Three-Dots Menu */}
+        <div className="relative" ref={menuRef}>
           <button
-            onClick={() => setReplying(true)}
-            className="text-blue-500 hover:text-blue-700 text-sm"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+            aria-label="More options"
           >
-            Reply
+            <MoreVertical className="w-5 h-5" />
           </button>
-        )}
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+              {currentUser && comment.user._id === currentUser._id && (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditing(true);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleDelete();
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+              {currentUser && (
+                <button
+                  onClick={() => {
+                    setReplying(true);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100"
+                >
+                  Reply
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Reply Form */}
       <div className="ml-14 mt-2">
-        {replying ? (
+        {replying && (
           <ReplyForm
             onCancel={() => setReplying(false)}
             onReply={handleReply}
           />
-        ) : null}
+        )}
       </div>
 
       {/* Replies */}
@@ -134,20 +175,24 @@ function Comment({ comment, currentUser, addReply, refreshComments }) {
                     : "U"}
                 </div>
               )}
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-800">{reply.user.username || "User"}</p>
-                <p className="text-gray-700">{reply.content}</p>
-                <p className="text-xs text-gray-500">
-                  {reply.createdAt
-                    ? new Date(reply.createdAt).toLocaleString()
-                    : "Unknown time"}
+              <div className="flex-1 relative">
+                {/* Username and Date/Time */}
+                <p className="text-sm font-semibold text-gray-800 group">
+                  {reply.user.username || "User"}
+                  <span className="ml-2 text-xs text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {reply.createdAt
+                      ? new Date(reply.createdAt).toLocaleString()
+                      : "Unknown time"}
+                  </span>
                 </p>
+                {/* Reply Content */}
+                <p className="text-gray-700 mt-1">{reply.content}</p>
               </div>
             </li>
           ))}
         </ul>
       )}
-    </li>
+    </div>
   );
 }
 

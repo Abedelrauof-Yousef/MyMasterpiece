@@ -21,8 +21,7 @@ const ContactMessages = () => {
       const response = await axios.get(
         "http://localhost:5001/api/admin/contact/contact-messages",
         {
-          // Include authorization headers if necessary
-          // headers: { Authorization: `Bearer ${token}` }
+
         }
       );
       if (response.data.success) {

@@ -5,13 +5,12 @@ const router = express.Router();
 const Feedback = require('../Models/feedback');
 const authMiddleware = require('../Middleware/userAuth');
 
-// @route   POST /api/feedback
-// @desc    Submit new feedback
-// @access  Private
+
 router.post('/', authMiddleware, async (req, res) => {
   const { rating, comment } = req.body;
 
-  // Basic validation
+
+ 
   if (!rating || !comment) {
     return res.status(400).json({ msg: 'Please provide rating and comment.' });
   }
@@ -35,14 +34,12 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// @route   GET /api/feedback
-// @desc    Get all feedback
-// @access  Public
+
 router.get('/', async (req, res) => {
   try {
     const feedbacks = await Feedback.find()
-      .populate('user', 'username') // Populate user's username; adjust fields as needed
-      .sort({ createdAt: -1 }); // Latest feedback first
+      .populate('user', 'username') 
+      .sort({ createdAt: -1 }); 
     res.json(feedbacks);
   } catch (err) {
     console.error(err.message);

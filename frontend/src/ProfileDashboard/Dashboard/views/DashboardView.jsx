@@ -1,6 +1,8 @@
+// src/components/DashboardView.js
+
 import React from "react";
 import { ArrowUpCircle, ArrowDownCircle, Wallet, Target } from "lucide-react";
-import CustomProgress from "../../CustomProgress";
+import CustomProgress from "../../CustomProgress"; // Ensure this path is correct
 
 // Custom Card Components
 const Card = ({ children, className = "" }) => (
@@ -25,7 +27,7 @@ const DashboardView = ({
   goals,
 }) => {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 mt-8"> {/* Added mt-8 for top margin */}
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Dashboard</h1>

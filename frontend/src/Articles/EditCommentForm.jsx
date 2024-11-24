@@ -1,17 +1,27 @@
 // src/components/EditCommentForm.jsx
+
 import React, { useState } from "react";
 
 function EditCommentForm({ initialContent, onSave, onCancel }) {
   const [content, setContent] = useState(initialContent);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim()) {
       setError("Content cannot be empty.");
       return;
     }
-    onSave(content.trim());
+    try {
+      setSaving(true);
+      await onSave(content.trim());
+      setError("");
+    } catch (err) {
+      setError("Failed to save changes.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -26,9 +36,12 @@ function EditCommentForm({ initialContent, onSave, onCancel }) {
       <div className="flex space-x-2">
         <button
           type="submit"
-          className="px-3 py-1 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          disabled={saving}
+          className={`px-3 py-1 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
+            saving ? "cursor-not-allowed" : ""
+          }`}
         >
-          Save
+          {saving ? "Saving..." : "Save"}
         </button>
         <button
           type="button"
